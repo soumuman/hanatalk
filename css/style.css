@@ -56,3 +56,5 @@
 .type-options input[type=radio]{width:20px;height:20px;min-height:20px;padding:0;accent-color:var(--green)}
 
 .choices button.kind-person{background:var(--person-card)}.choices button.kind-group{background:var(--group-card)}
+
+.remove-card{margin-top:18px;width:100%;background:var(--bg)}.restore-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0}.restore-row span{overflow-wrap:anywhere;min-width:0}.restore-row button{flex-shrink:0}

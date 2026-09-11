@@ -76,6 +76,7 @@ export async function changeTalk(date,targetId,action='toggle'){
     const store=tx.objectStore('dailyLogs'),people=tx.objectStore('people');
     const person=await request(people.get(targetId));
     if(!person)throw new Error('相手が見つかりません');
+    if(!person.isActive)throw new Error('一覧に戻してから記録してください');
     const old=await request(store.index('date_target').get([date,targetId]));
     const before=old?logCount(old):0,type=recordType(person,old);
     const count=nextTalkCount(before,type,action);

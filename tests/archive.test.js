@@ -1,0 +1,25 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as db from '../js/db.js';
+import {totalTalkCount} from '../js/records.js';
+import {flowerSVG} from '../js/flower.js';
+test('remove from list leaves every historical row and completed flower unchanged; restore reuses identity',async()=>{
+  await db.quickAddPerson('仲間','other','group');
+  const person=(await db.all('people'))[0],date='2026-09-01';
+  await db.changeTalk(date,person.id);
+  for(let i=1;i<5;i++)await db.changeTalk(date,person.id,'increment');
+  const before=await db.all('dailyLogs'),flower=flowerSVG(date,totalTalkCount(before));
+  await db.updatePerson(person.id,{isActive:false});
+  assert.deepEqual(await db.all('dailyLogs'),before);
+  assert.equal(flowerSVG(date,totalTalkCount(await db.all('dailyLogs'))),flower);
+  assert.equal((await db.all('people')).filter(p=>p.isActive).length,0);
+  await assert.rejects(db.changeTalk(date,person.id));
+  await assert.rejects(db.changeTalk('2026-09-02',person.id));
+  await db.reorderIds([]);
+  (await db.openDB()).onversionchange();
+  assert.deepEqual(await db.all('dailyLogs'),before);
+  await db.updatePerson(person.id,{isActive:true});
+  assert.equal((await db.all('people'))[0].id,person.id);
+  assert.deepEqual(await db.all('dailyLogs'),before);
+});

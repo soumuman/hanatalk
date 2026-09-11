@@ -29,7 +29,7 @@ test('v1 migration preserves ids, order, hidden state, dates and all counts',asy
   assert.ok(logs.every(l=>l.targetId===old.id&&l.personId===old.id&&l.count===1));
   assert.equal(await db.setting('appStartedAt'),'2025-02-01');
   await db.ensureStarterCards();assert.equal((await db.all('people')).length,2);
-  await db.updatePerson(old.id,{type:'group'});
+  await db.updatePerson(old.id,{type:'group',isActive:true});
   await db.changeTalk('2026-09-01',old.id,'increment');
   assert.equal((await db.all('dailyLogs')).find(l=>l.date==='2026-09-01').count,2);
   assert.equal((await db.all('dailyLogs')).find(l=>l.date==='2025-02-01').count,1);

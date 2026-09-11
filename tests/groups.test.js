@@ -48,6 +48,7 @@ test('type changes preserve stored totals, names and hidden records',async()=>{
   const current=(await db.all('people')).find(p=>p.id===person.id);
   assert.equal(current.type,'person');assert.equal(current.isActive,false);
   // Existing count remains intact, while another day starts as one person.
+  await db.updatePerson(person.id,{isActive:true});
   await db.changeTalk('2026-09-09',person.id);
   await assert.rejects(db.changeTalk('2026-09-09',person.id,'increment'));
   assert.equal((await db.all('dailyLogs')).find(l=>l.id===log.id).count,2);
