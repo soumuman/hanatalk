@@ -1,0 +1,20 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as db from '../js/db.js';
+test('quick addition assigns category, avoids duplicates, and restores original identity',async()=>{
+  assert.equal(await db.quickAddPerson('妻','family'),'added');
+  assert.equal((await db.all('people'))[0].category,'family');
+  await Promise.all([db.quickAddPerson(' 平井さん '),db.quickAddPerson('平井さん')]);
+  let people=await db.all('people');assert.equal(people.length,2);
+  const person=people.find(p=>p.displayName==='平井さん');assert.equal(person.category,'other');assert.equal(person.sortOrder,1);
+  await db.toggleTalk('2026-09-11',person.id);
+  const saved=(await db.all('people')).find(p=>p.id===person.id);
+  await db.put('people',{...saved,isActive:false});
+  assert.equal(await db.quickAddPerson('平井さん','work'),'restored');
+  const restored=(await db.all('people')).find(p=>p.id===person.id);
+  assert.equal(restored.isActive,true);assert.equal(restored.totalTalkDays,1);assert.equal(restored.category,'other');
+  assert.equal((await db.all('dailyLogs'))[0].personId,person.id);
+  assert.equal(await db.quickAddPerson('平井さん'),'existing');
+  await assert.rejects(db.quickAddPerson('   '));
+});

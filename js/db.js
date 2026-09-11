@@ -1,4 +1,5 @@
 import {APP_VERSION} from './version.js';
+import {createPerson} from './people.js';
 import {historyFor,dateKey} from './calendar.js';
 let opening;
 export function openDB(){return opening??=new Promise((resolve,reject)=>{const r=indexedDB.open('talk-flower',1);r.onupgradeneeded=()=>{const db=r.result;db.createObjectStore('people',{keyPath:'id'});const logs=db.createObjectStore('dailyLogs',{keyPath:'id'});logs.createIndex('date_person',['date','personId'],{unique:true});logs.createIndex('personId','personId');logs.createIndex('date','date');db.createObjectStore('settings',{keyPath:'key'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();opening=null;};resolve(r.result);};r.onerror=()=>{opening=null;reject(r.error);};r.onblocked=()=>reject(new Error('別のタブを閉じて、もう一度開いてください'));});}
@@ -7,6 +8,23 @@ export async function transact(stores,mode,fn){const db=await openDB();const tx=
 export const all=store=>transact([store],'readonly',tx=>request(tx.objectStore(store).getAll()));
 export const put=(store,value)=>transact([store],'readwrite',tx=>request(tx.objectStore(store).put(value)));
 export const setting=async key=>(await all('settings')).find(s=>s.key===key)?.value;
+export async function quickAddPerson(name,category='other'){
+  name=name.trim();
+  if(!name||name.length>40)throw new Error('名前は1〜40文字で入力してください');
+  return transact(['people'],'readwrite',async tx=>{
+    const store=tx.objectStore('people');
+    const people=await request(store.getAll());
+    const existing=people.find(p=>p.displayName===name&&p.isActive)||people.find(p=>p.displayName===name);
+    if(existing){
+      if(existing.isActive)return 'existing';
+      store.put({...existing,isActive:true});
+      return 'restored';
+    }
+    const sortOrder=people.reduce((max,p)=>Math.max(max,p.sortOrder),-1)+1;
+    store.add(createPerson(name,category,sortOrder));
+    return 'added';
+  });
+}
 // Atomic read-if-absent: subsequent visits and concurrent tabs never overwrite it.
 export async function ensureAppStartedAt(today=dateKey()){
   return transact(['settings','people','dailyLogs'],'readwrite',async tx=>{
