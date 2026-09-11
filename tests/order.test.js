@@ -1,0 +1,20 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as db from '../js/db.js';
+test('first registration persists before completion and ordering preserves records and edits',async()=>{
+  await db.quickAddPerson('妻','family');await db.quickAddPerson('友人','friend');
+  assert.equal(await db.setting('initialized'),undefined);
+  (await db.openDB()).onversionchange();
+  let people=(await db.all('people')).sort((a,b)=>a.sortOrder-b.sortOrder);
+  assert.equal(people.length,2);
+  await db.initialize([]);assert.equal((await db.all('people')).length,2);
+  const [a,b]=people;
+  await db.put('people',{...a,displayName:'家族',isActive:false,totalTalkDays:7});
+  await db.quickAddPerson('新しい人');
+  await db.reorderIds([b.id,a.id,b.id,'missing']);
+  people=(await db.all('people')).sort((a,b)=>a.sortOrder-b.sortOrder);
+  assert.deepEqual(people.map(p=>p.displayName),['友人','家族','新しい人']);
+  assert.equal(people[1].totalTalkDays,7);assert.equal(people[1].isActive,false);
+  assert.deepEqual(people.map(p=>p.sortOrder),[0,1,2]);
+});

@@ -46,3 +46,13 @@ export async function ensureAppStartedAt(today=dateKey()){
 export async function initialize(people){await transact(['people','settings'],'readwrite',tx=>{people.forEach(p=>tx.objectStore('people').put(p));tx.objectStore('settings').put({key:'initialized',value:true});tx.objectStore('settings').put({key:'appVersion',value:APP_VERSION});});}
 export async function toggleTalk(date,personId){assertRecordableDate(date);return transact(['people','dailyLogs'],'readwrite',async tx=>{const store=tx.objectStore('dailyLogs');const id=`${date}:${personId}`;const old=await request(store.get(id));if(old)store.delete(id);else store.add({id,date,personId,createdAt:new Date().toISOString()});const person=await request(tx.objectStore('people').get(personId));if(!person)throw new Error('人物が見つかりません');const logs=await request(store.index('personId').getAll(personId));tx.objectStore('people').put({...person,...historyFor(logs)});return !old;});}
 export async function reorder(people){return transact(['people'],'readwrite',tx=>people.forEach((p,i)=>tx.objectStore('people').put({...p,sortOrder:i})));}
+export async function reorderIds(ids){
+  return transact(['people'],'readwrite',async tx=>{
+    const store=tx.objectStore('people');
+    const people=await request(store.getAll());
+    const byId=new Map(people.map(p=>[p.id,p]));
+    const ordered=[...new Set(ids)].filter(id=>byId.has(id));
+    people.sort((a,b)=>a.sortOrder-b.sortOrder).forEach(p=>{if(!ordered.includes(p.id))ordered.push(p.id);});
+    ordered.forEach((id,sortOrder)=>store.put({...byId.get(id),sortOrder}));
+  });
+}

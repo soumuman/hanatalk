@@ -19,3 +19,14 @@
 @media(min-width:600px){.calendar-view .day{height:87px}}
 
 .add-people .choices button{min-height:64px}.add-people .choices small{display:block;font-size:12px;margin-top:4px}.add-people .choices button:disabled{opacity:1;background:var(--soft-green);color:var(--muted);border-color:var(--line)}
+
+.people-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.people-grid button{flex-direction:column;justify-content:center;text-align:center;gap:7px;min-height:88px;padding:12px 6px;font-size:16px}
+.drag-handle{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;min-width:44px;padding:8px 6px;font-size:25px;border:0;background:transparent;color:var(--muted);flex-shrink:0}
+.dragging{background:var(--soft-green);outline:2px solid #a7b89a;box-shadow:0 3px 12px #304b3d20;z-index:1}
+.dragging .drag-handle{cursor:grabbing}
+.person-row .person-info{flex:1;min-width:0;overflow-wrap:anywhere}
+.person-row .row-actions{gap:2px}.person-row .row-actions button{padding:8px;min-width:40px}
+.registered-names{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.registered-names>span{padding:8px 12px;background:var(--soft-green);border-radius:10px;font-size:15px}
+.registered-names small{font-size:12px;color:var(--muted)}
