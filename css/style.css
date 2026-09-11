@@ -30,3 +30,10 @@
 .registered-names{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .registered-names>span{padding:8px 12px;background:var(--soft-green);border-radius:10px;font-size:15px}
 .registered-names small{font-size:12px;color:var(--muted)}
+
+.person-settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0 10px}
+.person-tile{position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--soft-green)}
+.person-tile-name{border:0;background:transparent;width:100%;min-height:104px;padding:12px 6px 38px;text-align:center;overflow-wrap:anywhere}
+.person-tile-name strong{font-size:16px;font-weight:500}.person-tile-name small{display:block;font-size:12px;margin-top:5px;color:var(--muted)}
+.person-tile .drag-handle{position:absolute;bottom:0;left:0;width:100%;min-height:36px;height:36px;padding:0;font-size:22px}
+.person-tile.inactive{background:#f5f4ef}.setting-candidates{margin:10px 0 20px}.setting-candidates small{display:block;font-size:12px;margin-top:5px;color:var(--muted)}
