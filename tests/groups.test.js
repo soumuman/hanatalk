@@ -15,7 +15,7 @@ test('person + person + group of three makes five; increments update one row; to
   await Promise.all([db.changeTalk(date,group.id,'increment'),db.changeTalk(date,group.id,'increment')]);
   let logs=await db.all('dailyLogs'),groupLog=logs.find(l=>l.targetId===group.id);
   assert.equal(logs.length,3);assert.equal(groupLog.count,3);assert.equal(totalTalkCount(logs),5);
-  assert.equal((flowerSVG(date,totalTalkCount(logs)).match(/class="petal colored"/g)||[]).length,5);
+  assert.match(flowerSVG(date,totalTalkCount(logs)),/data-progress="1"/);
   assert.equal((await db.all('people')).find(p=>p.id===group.id).totalTalkDays,1);
   const createdAt=groupLog.createdAt,id=groupLog.id;
   const six=await db.changeTalk(date,group.id,'increment');assert.equal(six.total,6);assert.equal(six.totalBefore,5);

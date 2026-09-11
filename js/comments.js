@@ -13,9 +13,9 @@ let previous='';
 export function pickComment(logs,date,count){
   if(count===5)return previous='今日の花が咲きました 🌸';
   const group=commentGroup(logs,date);
-  // A completed flower keeps five petals, including when a new person is first recorded.
+  // Wording applies to petals, florets, bracts and flowers that gradually open.
   const pool=group==='early'&&count<5
-    ? ['花びらがひとつ色づきました','この日の花に一枚追加です','ひとつ、記録されました']
+    ? ['花が少し開きました','この日の花が色づきました','ひとつ、記録されました']
     : messages[group];
   const options=pool.filter(m=>m!==previous);
   previous=options[Math.floor(Math.random()*options.length)];
