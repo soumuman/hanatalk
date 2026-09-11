@@ -24,7 +24,7 @@ function calendar(){
   app.innerHTML=`<section class="calendar" aria-label="月間カレンダー"><div class="month-nav">${button('‹ <span>先月</span>','prev')}<button data-action="month" class="month-title" aria-label="${y}年${m+1}月、年月を選択">${y} <span>/</span> ${m+1} <small>⌄</small></button>${button('<span>来月</span> ›','next')}</div><div class="month-sub"><div class="season"><span>${getFlowerType(month).name}の月</span><span class="season-note">${getSeasonalNote(month)}</span></div>${button('今月','today-month','text-link')}</div><div class="calendar-grid"><div class="week sunday">日</div>${['月','火','水','木','金','土'].map(w=>`<div class="week">${w}</div>`).join('')}${monthCells(y,m).map(date=>{
     if(!date)return '<div class="day blank"></div>';
     const count=counts.get(date)||0,state=calendarDayState(date,count,appStartedAt,today);
-    const visual=state==='flower'?flowerSVG(date,count):state==='sprout'?sproutSVG():'';
+    const visual=state==='flower'?flowerSVG(date,count,{calendar:true}):state==='sprout'?sproutSVG():'';
     const label=state==='flower'?`、${count}人と話しました`:state==='sprout'?'、双葉':'';
     return `<a class="day ${date===today?'today':''}" href="#day/${date}" aria-label="${formatDate(date)}${label}" ${date===today?'aria-current="date"':''}><span>${Number(date.slice(8))}</span><div class="day-visual">${visual}</div></a>`;
   }).join('')}</div></section>${footer()}`;
