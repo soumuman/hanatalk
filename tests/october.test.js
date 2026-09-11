@@ -1,0 +1,24 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as db from '../js/db.js';
+import {calendarDayState,monthCells} from '../js/calendar.js';
+import {flowerSVG,getFlowerType} from '../js/flower.js';
+test('October 1 wife record survives reopening and displays one colored osmanthus petal even in September',async()=>{
+  await db.ensureAppStartedAt('2026-09-11');
+  await db.quickAddPerson('妻','family');
+  const person=(await db.all('people'))[0];
+  await db.toggleTalk('2026-10-01',person.id);
+  (await db.openDB()).onversionchange();
+  const logs=await db.all('dailyLogs');
+  const date=monthCells(2026,9).find(d=>d==='2026-10-01');
+  const count=logs.filter(log=>log.date===date).length;
+  assert.equal(count,1);
+  assert.equal(calendarDayState(date,count,await db.setting('appStartedAt'),'2026-09-11'),'flower');
+  assert.equal(getFlowerType(date).name,'金木犀');
+  const svg=flowerSVG(date,count);
+  assert.equal((svg.match(/class="petal colored"/g)||[]).length,1);
+  assert.doesNotMatch(svg,/class="sprout"/);
+  await db.toggleTalk(date,person.id);
+  assert.equal(calendarDayState(date,(await db.all('dailyLogs')).length,'2026-09-11','2026-09-11'),'sprout');
+});
