@@ -1,0 +1,54 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as db from '../js/db.js';
+import {totalTalkCount,logCount} from '../js/records.js';
+import {entryCard,settingsCard} from '../js/cards.js';
+import {flowerSVG} from '../js/flower.js';
+const date='2026-09-10';
+test('person + person + group of three makes five; increments update one row; toggle clears all',async()=>{
+  await db.quickAddPerson('妻','family','person');
+  await db.quickAddPerson('佐藤さん','work','person');
+  await db.quickAddPerson('同僚','work','group');
+  const people=await db.all('people'),wife=people.find(p=>p.displayName==='妻'),sato=people.find(p=>p.displayName==='佐藤さん'),group=people.find(p=>p.displayName==='同僚');
+  await db.changeTalk(date,wife.id);await db.changeTalk(date,sato.id);await db.changeTalk(date,group.id);
+  await Promise.all([db.changeTalk(date,group.id,'increment'),db.changeTalk(date,group.id,'increment')]);
+  let logs=await db.all('dailyLogs'),groupLog=logs.find(l=>l.targetId===group.id);
+  assert.equal(logs.length,3);assert.equal(groupLog.count,3);assert.equal(totalTalkCount(logs),5);
+  assert.equal((flowerSVG(date,totalTalkCount(logs)).match(/class="petal colored"/g)||[]).length,5);
+  assert.equal((await db.all('people')).find(p=>p.id===group.id).totalTalkDays,1);
+  const createdAt=groupLog.createdAt,id=groupLog.id;
+  const six=await db.changeTalk(date,group.id,'increment');assert.equal(six.total,6);assert.equal(six.totalBefore,5);
+  groupLog=(await db.all('dailyLogs')).find(l=>l.targetId===group.id);assert.equal(groupLog.createdAt,createdAt);assert.equal(groupLog.id,id);
+  const clear=await db.changeTalk(date,group.id,'toggle');assert.equal(clear.count,0);assert.equal(clear.total,2);
+  await db.changeTalk(date,group.id);await db.changeTalk(date,group.id,'decrement');
+  assert.equal((await db.all('dailyLogs')).some(l=>l.targetId===group.id),false);
+  await assert.rejects(db.changeTalk(date,wife.id,'increment'));
+  await assert.rejects(db.put('dailyLogs',{id:'duplicate',date,targetId:wife.id,count:1}));
+  const sum=totalTalkCount(await db.all('dailyLogs'));
+  (await db.openDB()).onversionchange();assert.equal(totalTalkCount(await db.all('dailyLogs')),sum);
+});
+test('card controls stay separate from toggle and only appear for selected groups',()=>{
+  const p={id:'p',displayName:'佐藤さん',type:'person',isActive:true};
+  const g={...p,id:'g',displayName:'同僚',type:'group'};
+  assert.doesNotMatch(entryCard(p,{count:1}),/data-count-target/);
+  assert.doesNotMatch(entryCard(g),/data-count-target/);
+  const markup=entryCard(g,{count:3});
+  assert.match(markup,/<\/button><div class="count-controls"/);
+  assert.match(markup,/data-count-action="increment"/);assert.match(markup,/data-count-action="decrement"/);
+  assert.doesNotMatch(settingsCard(g),/>個人<|>グループ<|>複数人</);
+  assert.match(settingsCard(g),/card-menu/);
+});
+test('type changes preserve stored totals, names and hidden records',async()=>{
+  const person=(await db.all('people')).find(p=>p.displayName==='同僚');
+  await db.changeTalk(date,person.id);await db.changeTalk(date,person.id,'increment');
+  await db.updatePerson(person.id,{type:'person',displayName:'仕事の相手',isActive:false});
+  let logs=await db.all('dailyLogs'),log=logs.find(l=>l.targetId===person.id);
+  assert.equal(logCount(log),2);
+  const current=(await db.all('people')).find(p=>p.id===person.id);
+  assert.equal(current.type,'person');assert.equal(current.isActive,false);
+  // Existing count remains intact, while another day starts as one person.
+  await db.changeTalk('2026-09-09',person.id);
+  await assert.rejects(db.changeTalk('2026-09-09',person.id,'increment'));
+  assert.equal((await db.all('dailyLogs')).find(l=>l.id===log.id).count,2);
+});
