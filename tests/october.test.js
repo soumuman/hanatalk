@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import * as db from '../js/db.js';
 import {calendarDayState,monthCells} from '../js/calendar.js';
 import {flowerSVG,getFlowerType} from '../js/flower.js';
-test('October 1 wife record survives reopening and displays one colored osmanthus petal even in September',async()=>{
+test('October 1 wife record survives reopening and displays one colored osmanthus petal for an existing record',async(t)=>{
+  t.mock.timers.enable({apis:['Date'],now:new Date('2026-10-02T12:00:00+09:00')});
   await db.ensureAppStartedAt('2026-09-11');
   await db.quickAddPerson('妻','family');
   const person=(await db.all('people'))[0];

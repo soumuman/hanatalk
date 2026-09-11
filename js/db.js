@@ -1,6 +1,6 @@
 import {APP_VERSION} from './version.js';
 import {createPerson} from './people.js';
-import {historyFor,dateKey} from './calendar.js';
+import {historyFor,dateKey,assertRecordableDate} from './calendar.js';
 let opening;
 export function openDB(){return opening??=new Promise((resolve,reject)=>{const r=indexedDB.open('talk-flower',1);r.onupgradeneeded=()=>{const db=r.result;db.createObjectStore('people',{keyPath:'id'});const logs=db.createObjectStore('dailyLogs',{keyPath:'id'});logs.createIndex('date_person',['date','personId'],{unique:true});logs.createIndex('personId','personId');logs.createIndex('date','date');db.createObjectStore('settings',{keyPath:'key'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();opening=null;};resolve(r.result);};r.onerror=()=>{opening=null;reject(r.error);};r.onblocked=()=>reject(new Error('別のタブを閉じて、もう一度開いてください'));});}
 const request=r=>new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});
@@ -44,5 +44,5 @@ export async function ensureAppStartedAt(today=dateKey()){
   });
 }
 export async function initialize(people){await transact(['people','settings'],'readwrite',tx=>{people.forEach(p=>tx.objectStore('people').put(p));tx.objectStore('settings').put({key:'initialized',value:true});tx.objectStore('settings').put({key:'appVersion',value:APP_VERSION});});}
-export async function toggleTalk(date,personId){return transact(['people','dailyLogs'],'readwrite',async tx=>{const store=tx.objectStore('dailyLogs');const id=`${date}:${personId}`;const old=await request(store.get(id));if(old)store.delete(id);else store.add({id,date,personId,createdAt:new Date().toISOString()});const person=await request(tx.objectStore('people').get(personId));if(!person)throw new Error('人物が見つかりません');const logs=await request(store.index('personId').getAll(personId));tx.objectStore('people').put({...person,...historyFor(logs)});return !old;});}
+export async function toggleTalk(date,personId){assertRecordableDate(date);return transact(['people','dailyLogs'],'readwrite',async tx=>{const store=tx.objectStore('dailyLogs');const id=`${date}:${personId}`;const old=await request(store.get(id));if(old)store.delete(id);else store.add({id,date,personId,createdAt:new Date().toISOString()});const person=await request(tx.objectStore('people').get(personId));if(!person)throw new Error('人物が見つかりません');const logs=await request(store.index('personId').getAll(personId));tx.objectStore('people').put({...person,...historyFor(logs)});return !old;});}
 export async function reorder(people){return transact(['people'],'readwrite',tx=>people.forEach((p,i)=>tx.objectStore('people').put({...p,sortOrder:i})));}

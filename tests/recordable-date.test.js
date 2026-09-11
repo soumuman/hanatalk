@@ -1,0 +1,21 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assertRecordableDate,calendarDayState,FUTURE_DATE_MESSAGE} from '../js/calendar.js';
+import * as db from '../js/db.js';
+test('today and past are allowed; tomorrow, invalid dates and future writes are rejected',async(t)=>{
+  t.mock.timers.enable({apis:['Date'],now:new Date('2026-09-11T12:00:00+09:00')});
+  for(const date of ['2026-09-11','2026-09-10','2026-08-01'])assert.doesNotThrow(()=>assertRecordableDate(date));
+  assert.throws(()=>assertRecordableDate('2026-09-12'),{message:FUTURE_DATE_MESSAGE});
+  assert.throws(()=>assertRecordableDate('2026-02-30'));
+  await db.ensureAppStartedAt();await db.quickAddPerson('妻','family');
+  const person=(await db.all('people'))[0];
+  await assert.rejects(db.toggleTalk('2026-09-12',person.id),{message:FUTURE_DATE_MESSAGE});
+  assert.equal((await db.all('dailyLogs')).length,0);
+  await db.toggleTalk('2026-08-01',person.id);
+  assert.equal(calendarDayState('2026-08-01',1,await db.setting('appStartedAt')),'flower');
+  await db.toggleTalk('2026-08-01',person.id);
+  assert.equal(calendarDayState('2026-08-01',0,await db.setting('appStartedAt')),'empty');
+  await db.toggleTalk('2026-09-11',person.id);
+  assert.equal((await db.all('dailyLogs')).length,1);
+});
