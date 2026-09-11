@@ -23,11 +23,12 @@ test('legacy migration retains old logs and chooses earliest available date',asy
 test('calendar displays empty before start, sprouts for zero/future, and flowers for actual counts',()=>{
   const start='2026-09-11',today='2026-09-20';
   assert.equal(calendarDayState('2026-09-10',0,start,today),'empty');
-  assert.equal(calendarDayState('2026-09-10',2,start,today),'empty');
+  assert.equal(calendarDayState('2026-09-10',2,start,today),'flower');
   assert.equal(calendarDayState(start,0,start,today),'sprout');
   assert.equal(calendarDayState(today,0,start,today),'sprout');
-  assert.equal(calendarDayState('2026-09-21',4,start,today),'sprout');
-  for(const count of [1,2,3,4,5,6,15])assert.equal(calendarDayState(today,count,start,today),'flower');
+  assert.equal(calendarDayState('2026-09-21',4,start,today),'flower');
+  for(const date of ['2026-09-10',start,today,'2026-09-21'])for(const count of [1,2,3,4,5,6,15])assert.equal(calendarDayState(date,count,start,today),'flower');
+  assert.equal(calendarDayState('2026-09-21',0,start,today),'sprout');
   assert.match(sproutSVG(),/<svg/);assert.doesNotMatch(sproutSVG(),/🌱/);
   assert.equal(seasonalNotes.length,12);
   assert.equal(getSeasonalNote('2026-09-11'),'風に、少し秋の気配。');
