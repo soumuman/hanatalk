@@ -65,3 +65,30 @@
 .calendar-flower .flower-foliage{display:none}
 
 .cloud-panel{margin:20px 0}.cloud-panel button{margin:4px 6px 4px 0}.cloud-options{display:grid;gap:10px}
+
+/* c019: the flower leads; fixed card geometry keeps every tap in place. */
+.entry-view .brand{padding:10px 20px;gap:0;min-height:42px}
+.entry-view .brand-note{display:none}
+.entry-view .entry{padding:4px 16px 24px}
+.entry-date{display:flex;align-items:center;gap:12px;min-height:40px}
+.entry-date .back{padding:10px 0;min-height:40px;font-size:14px;flex-shrink:0}
+.entry-date .date-label{margin:0;font-size:15px;color:var(--ink)}
+.entry .flower-stage{padding:0;text-align:center}
+.entry .flower-stage .large{width:150px;height:162px;display:block;margin:0 auto}
+.entry .count{font-size:18px;line-height:1.5;margin:0}
+.entry .bloom-message{font-size:14px;line-height:1.5;min-height:21px;margin:3px 0 5px}
+.entry .entry-prompt{font-size:14px;margin:8px 0;line-height:1.5}
+.entry .people-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 4px;align-items:stretch;overflow-anchor:none}
+.entry .talk-card{height:74px;position:relative}
+.entry .people-grid .talk-card-body{height:72px;min-height:0;padding:4px 6px;display:flex;flex-direction:row;gap:3px;position:relative}
+.entry-name{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;font-weight:500}
+.entry-check{font-size:12px;flex-shrink:0;color:var(--green)}
+.entry .talk-card.is-selected{background:#dce8d7}
+.entry .talk-card.kind-group.is-selected .talk-card-body{height:30px}
+.entry .count-controls{height:42px;padding:0;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.entry .people-grid .count-controls button{height:42px;min-height:42px;padding:0;font-size:20px}
+.entry .count-controls output{font-size:15px;min-width:1.2em;max-width:3em;overflow:hidden;white-space:nowrap}
+.entry .add-person{min-height:44px;padding:12px 0;font-size:14px}
+.entry .saved{margin:10px 0 0;font-size:13px}
+.entry-view #notice:not(:empty){bottom:calc(12px + env(safe-area-inset-bottom));pointer-events:none;padding:10px 16px}
+@media(max-height:650px){.entry .flower-stage .large{width:136px;height:147px}.entry .bloom-message{margin:2px 0}.entry .entry-prompt{margin:6px 0}}
