@@ -1,3 +1,5 @@
+import {showDiagnostics} from './diagnostics.js';
+import {APP_VERSION} from '../version.js';
 import * as db from '../db.js';
 import {client,sendCode,verifyCode} from './client.js';
 import {createSyncEngine} from './sync.js';
@@ -9,7 +11,7 @@ let engine,session=null,status='端末内に保存しています',email='',hook
 export function cloudPanel(){return '<div id="cloud-panel" class="info-box cloud-panel"></div>';}
 export function paintCloud(){
  const el=document.querySelector('#cloud-panel');if(!el)return;
- el.innerHTML=`<h2>クラウド同期</h2><p role="status">${esc(status)}</p>`;
+ el.innerHTML=`<h2>クラウド同期</h2><p role="status">${esc(status)}</p><button type="button" data-storage-diagnostics>保存データを確認</button>`;
  if(!client){el.insertAdjacentHTML('beforeend','<p>クラウド接続の準備中です。これまでどおり端末内で利用できます。</p>');return;}
  if(session){el.insertAdjacentHTML('beforeend',`<p>ログイン済み</p>${db.currentAccount()?'<button data-cloud="sync">今すぐ同期</button>':'<button data-cloud="enable">クラウド同期を有効にする</button>'}<button data-cloud="logout">ログアウト</button><p class="small">ログアウトすると、ログイン前の端末内データに戻ります。</p>`);}
  else el.insertAdjacentHTML('beforeend',`<form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>確認コードを送る</button></form>${email?'<form id="cloud-code"><label>メールの確認コード<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required></label><button>ログイン</button></form>':''}<p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p>`);
@@ -63,7 +65,9 @@ async function adopt(next){
  });
 }
 export async function bootCloud(callbacks){
- hooks=callbacks;if(!client){paintCloud();return;}
+ hooks=callbacks;
+ document.addEventListener('click',e=>{if(e.target.closest('[data-storage-diagnostics]'))showDiagnostics({account:db.currentAccount(),version:APP_VERSION,loggedIn:!!session,origin:location.origin,standalone:!!navigator.standalone||matchMedia('(display-mode: standalone)').matches});});
+ if(!client){paintCloud();return;}
  db.changes.addEventListener('change',()=>engine?.schedule());
  window.addEventListener('online',()=>engine?.schedule(0));
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')engine?.schedule(0);});
