@@ -1,3 +1,4 @@
+import {emailFailureMessage} from './auth-errors.js';
 import {cleanCallbackURL} from './auth-link.js';
 import {showDiagnostics} from './diagnostics.js';
 import {APP_VERSION} from '../version.js';
@@ -83,8 +84,8 @@ export async function bootCloud(callbacks){
    try{const next=await verifyLink(value);value='';await enqueue(()=>adopt(next));setStatus('ログインできました。クラウド同期を有効にして、使うデータを選んでください。');}
    catch{setStatus('リンクを確認できませんでした。新しいメールの、まだ開いていない確認リンクをコピーしてください。');}finally{value='';b.disabled=false;}return;
   }
-  try{const address=new FormData(form).get('email').trim();await sendLink(address);email=address;setStatus('メールを送りました。届いたメールのリンクを、このブラウザで開いてください。');}
-  catch{setStatus('メールを送れませんでした。入力内容と通信状態を確認し、少し待ってからお試しください。');}finally{b.disabled=false;}
+  try{const address=new FormData(form).get('email').trim();email=address;await sendLink(address);setStatus('メールを送りました。届いたメールのリンクを、このブラウザで開いてください。');}
+  catch(error){setStatus(emailFailureMessage(error));}finally{b.disabled=false;}
  });
  document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-cloud]');if(!b||switching)return;b.disabled=true;
