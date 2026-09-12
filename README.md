@@ -96,7 +96,7 @@ iPhone向けに人物タップの同期処理内でAudioContextを作成・再�
 
 ## バージョン管理
 
-アプリの連番は001から開始します。設定画面と `js/version.js` で確認できます。変更内容は `CHANGELOG.md` に記載し、完成版には `release-001` 形式のGitタグと番号付きソースZIPを残します。現在はc013、次回はc014です。Sites側の自動バージョン番号とは別管理です。
+アプリの連番は001から開始します。設定画面と `js/version.js` で確認できます。変更内容は `CHANGELOG.md` に記載し、完成版には `release-001` 形式のGitタグと番号付きソースZIPを残します。現在はc014、次回はc015です。Sites側の自動バージョン番号とは別管理です。
 
 ## 002：季節と双葉
 
@@ -287,3 +287,7 @@ Supabase Dashboard → Advisors → Security Advisorを、SQL変更後・公開�
 変更：`js/db.js`（version 3・キュー・アカウント分離）、`js/app.js`（設定パネルの追加）、`css/style.css`（パネルのみ）、`build.js / server.js`（設定生成・CSP・配信制限）、`package.json / package-lock.json`、`service-worker.js`（新規モジュールのオフライン同梱）、`.gitignore`、`js/version.js / AGENTS.md / CHANGELOG.md / README.md`、旧migrationテストの期待DB版。月別花SVG・音・人物カード・人数計算・カレンダー判定は変更していません。
 
 参考： [Supabase RLS公式ガイド](https://supabase.com/docs/guides/database/postgres/row-level-security)、[メールOTP公式ガイド](https://supabase.com/docs/guides/auth/auth-email-passwordless)。
+
+## c014：接続先設定
+
+指定されたProject URLと公開キーを.env.localへ設定しました。メール認証の有効化と接続を確認済みです。2026-09-12の確認時点では4テーブルがRESTで未検出（PGRST205）でした。Dashboardでschema.sql、indexes.sqlを順に適用し、OTPメールのテンプレートを確認してください。実ログイン・A/B漏洩テスト・端末間同期はまだ未確認です。

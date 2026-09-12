@@ -1,3 +1,10 @@
+# c014
+
+- 指定されたSupabaseプロジェクトのURL・公開キーをローカル環境設定へ追加。
+- Auth設定APIへの接続とメール認証有効を確認。
+- people / daily_logs / settings / profilesはRESTから未検出。DashboardでSQL適用が必要。
+- 秘密鍵・環境設定ファイルはGitに含めない。
+
 # c013
 
 - 公式Supabaseクライアントを同梱。メールOTPログインと任意の同期設定を追加。
