@@ -336,3 +336,23 @@ Safari/Chromeのブラウザとホーム画面版は、端末内保存先が分�
 
 ### c017 メール送信の診断
 失敗時は確認番号（Supabase error.code / HTTP status）を表示します。メールアドレスは画面内だけで保持し、ページ再起動時は保持しません。サーバーの生エラーはログへ出力しません。標準メールサービスには送信制限・宛先制限があります。DashboardのAuth Logsで同時刻のエラーを確認してください。 https://supabase.com/docs/guides/auth/debugging/error-codes
+
+## c018 Googleログインの設定
+
+メール送信の代わりに「Googleでログイン」を主な入口にします。既存のメール方式は折りたたみ内に残します。Googleプロバイダが未設定なら画面に準備中と表示し、リダイレクトしません。
+
+1. https://console.cloud.google.com/ でプロジェクトを作成し、Google Auth Platformを開きます。
+2. Brandingでアプリ名「今日、誰としゃべった？」、サポート・連絡用メールを登録します。
+3. AudienceはExternal（外部）。テスト中はTest usersへ使用するGoogleアカウントを追加します。
+4. ClientsでOAuthクライアントを作成し、種類はWeb applicationを選びます。
+5. Authorized JavaScript origins: `https://daily-talk-flower-seki.bxd05575.chatgpt.site`
+6. Authorized redirect URIs: `https://eiiluzkqocuhcrwepesu.supabase.co/auth/v1/callback`
+7. 発行されたClient IDとClient SecretをSupabase Dashboard → Authentication → Sign In / Providers → Googleに入力し、Enabledにして保存します。SecretはDashboardだけに入力し、チャット・アプリ・Gitへ貼り付けないでください。
+8. Supabase URL ConfigurationのSite URLとRedirect URLsに `https://daily-talk-flower-seki.bxd05575.chatgpt.site/` を登録します。
+9. 元のiPadブラウザからGoogleログインします。既存の認証で使用したものと同じメールのGoogleアカウントを優先します。Supabaseは同じメールの認証情報を自動リンクしますが、異なるメールでは別ユーザーです。画面の記録件数を確認して初回の「引き継ぐ」を行います。
+10. 他の端末では同じGoogleアカウントでログインし「クラウド側データを使う」を選びます。Home Screen版で別ブラウザが開くか、戻り先・セッション保持も実機確認してください。
+
+メール送信やSMTP・独自ドメイン購入はこのログイン方式の前提ではありません。Google設定と実機ログインの確認は未完了です。公開前にはGoogleのAudience・Branding・必要なドメイン確認/審査を確認してください。現在Sitesは所有者のみ公開で、Google設定だけで一般公開にはなりません。
+
+Google Client SecretはSupabaseサーバー側だけで保持します。フロントへ新しい秘密情報は追加しません。要求するのは通常の本人確認情報だけで、Gmail・連絡先・Drive権限を追加しません。既存のIndexedDB・移行確認・RLS・同期機能をそのまま使用します。
+参考: https://supabase.com/docs/guides/auth/social-login/auth-google

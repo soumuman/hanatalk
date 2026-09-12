@@ -3,7 +3,7 @@ import {cleanCallbackURL} from './auth-link.js';
 import {showDiagnostics} from './diagnostics.js';
 import {APP_VERSION} from '../version.js';
 import * as db from '../db.js';
-import {client,sendLink,verifyLink,authLinkAttempt} from './client.js';
+import {client,sendLink,verifyLink,authLinkAttempt,signInGoogle} from './client.js';
 import {createSyncEngine} from './sync.js';
 import {stableUUID} from './model.js';
 import {escapeHTML as esc} from '../people.js';
@@ -16,7 +16,7 @@ export function paintCloud(){
  el.innerHTML=`<h2>クラウド同期</h2><p role="status">${esc(status)}</p><button type="button" data-storage-diagnostics>保存データを確認</button>`;
  if(!client){el.insertAdjacentHTML('beforeend','<p>クラウド接続の準備中です。これまでどおり端末内で利用できます。</p>');return;}
  if(session){el.insertAdjacentHTML('beforeend',`<p>ログイン済み</p>${db.currentAccount()?'<button data-cloud="sync">今すぐ同期</button>':'<button data-cloud="enable">クラウド同期を有効にする</button>'}<button data-cloud="logout">ログアウト</button><p class="small">ログアウトすると、ログイン前の端末内データに戻ります。</p>`);}
- else el.insertAdjacentHTML('beforeend',`<form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>ログイン用メールを送る</button></form><p class="small">届いたメールの「Confirm email address」または「Log In」を押してください。確認コードの入力は不要です。</p><details class="guide"><summary>ホーム画面版・別のブラウザが開く場合</summary><p>メールの確認リンクを長押ししてコピーし、この画面に戻って貼り付けてください。まだ開いていないリンクを使います。</p><form id="cloud-link"><label>確認リンク<input name="link" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="メールのリンクを貼り付け"></label><button>この画面でログイン</button></form><p class="small">確認リンクはログイン用です。他の人へ送らないでください。</p></details><p class="small">ブラウザとホーム画面版の保存先は別です。元のブラウザでクラウドに引き継いだあと、ホーム画面版では「クラウド側データを使う」を選びます。</p><p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p>`);
+ else el.insertAdjacentHTML('beforeend',`<p><button type="button" data-google-login>Googleでログイン</button></p><p class="small">端末間で同じGoogleアカウントを選んでください。</p><details class="guide"><summary>メールでログインする</summary><form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>ログイン用メールを送る</button></form><p class="small">届いたメールの「Confirm email address」または「Log In」を押してください。確認コードの入力は不要です。</p><details class="guide"><summary>ホーム画面版・別のブラウザが開く場合</summary><p>メールの確認リンクを長押ししてコピーし、この画面に戻って貼り付けてください。まだ開いていないリンクを使います。</p><form id="cloud-link"><label>確認リンク<input name="link" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="メールのリンクを貼り付け"></label><button>この画面でログイン</button></form><p class="small">確認リンクはログイン用です。他の人へ送らないでください。</p></details><p class="small">ブラウザとホーム画面版の保存先は別です。元のブラウザでクラウドに引き継いだあと、ホーム画面版では「クラウド側データを使う」を選びます。</p><p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p></details>`);
 }
 function setStatus(s){status=s;paintCloud();}
 async function chooseMigration(){
@@ -88,6 +88,8 @@ export async function bootCloud(callbacks){
   catch(error){setStatus(emailFailureMessage(error));}finally{b.disabled=false;}
  });
  document.addEventListener('click',async e=>{
+  const google=e.target.closest('[data-google-login]');
+  if(google){google.disabled=true;try{await signInGoogle();}catch(error){setStatus(error.message==='google_not_configured'?'Googleログインは設定準備中です。GoogleとSupabaseの接続設定が必要です。':'Googleログインを開始できませんでした。通信状態と接続設定を確認してください。');}finally{google.disabled=false;}return;}
   const b=e.target.closest('[data-cloud]');if(!b||switching)return;b.disabled=true;
   try{if(b.dataset.cloud==='enable')await enqueue(enable);else if(b.dataset.cloud==='sync')await engine?.run();else await enqueue(async()=>{await engine?.stop();engine=null;const {error}=await client.auth.signOut({scope:'local'});if(error){start();engine.schedule();throw error;}await adopt(null);});}
   catch{setStatus('クラウドに接続できませんでした。端末の記録は残っています。');}finally{b.disabled=false;}
