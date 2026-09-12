@@ -2,3 +2,10 @@ node_modules/
 public/
 dist/
 *.tar.gz
+
+.env
+.env.*
+!.env.example
+js/cloud/config.js
+js/vendor/
+security-results/

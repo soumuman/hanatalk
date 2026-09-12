@@ -1,0 +1,1 @@
+-- No shared seed data. The client creates starter cards in the signed-in account only.

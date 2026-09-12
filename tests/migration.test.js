@@ -21,7 +21,7 @@ test('v1 migration preserves ids, order, hidden state, dates and all counts',asy
     tx.objectStore('settings').put({key:'initialized',value:true});tx.objectStore('settings').put({key:'appStartedAt',value:'2025-02-01'});
     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
   });legacy.close();
-  const connection=await db.openDB();assert.equal(connection.version,2);
+  const connection=await db.openDB();assert.equal(connection.version,3);
   const people=await db.all('people');assert.equal(people.length,2);
   assert.deepEqual(people.find(p=>p.id===old.id),{...old,type:'person'});
   assert.equal(people.find(p=>p.id==='typed').type,'group');
@@ -35,3 +35,4 @@ test('v1 migration preserves ids, order, hidden state, dates and all counts',asy
   assert.equal((await db.all('dailyLogs')).find(l=>l.date==='2025-02-01').count,1);
   connection.onversionchange();assert.equal(totalTalkCount(await db.all('dailyLogs')),3);
 });
+

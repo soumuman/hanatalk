@@ -1,0 +1,7 @@
+import 'fake-indexeddb/auto';import test from 'node:test';import assert from 'node:assert/strict';import * as db from '../js/db.js';
+test('release 012 version-2 database upgrades without changing records or existing unique indexes',async()=>{
+ const person={id:crypto.randomUUID(),displayName:'既存人物',type:'group',category:'family',sortOrder:7,isActive:false,createdAt:'2026-01-01T00:00:00Z'};
+ const log={id:`2026-01-01:${person.id}`,date:'2026-01-01',targetId:person.id,personId:person.id,count:3,recordType:'group',createdAt:person.createdAt};
+ await new Promise((resolve,reject)=>{const r=indexedDB.open('talk-flower',2);r.onupgradeneeded=()=>{const d=r.result;const p=d.createObjectStore('people',{keyPath:'id'});p.put(person);const l=d.createObjectStore('dailyLogs',{keyPath:'id'});l.createIndex('date_person',['date','personId'],{unique:true});l.createIndex('date_target',['date','targetId'],{unique:true});for(const key of ['personId','targetId','date'])l.createIndex(key,key);l.put(log);d.createObjectStore('settings',{keyPath:'key'}).put({key:'appStartedAt',value:'2026-01-01'});};r.onsuccess=()=>{r.result.close();resolve();};r.onerror=()=>reject(r.error);});
+ assert.deepEqual(await db.all('people'),[person]);assert.deepEqual(await db.all('dailyLogs'),[log]);assert.equal(await db.setting('appStartedAt'),'2026-01-01');assert.deepEqual(await db.all('syncState'),[]);assert.equal((await db.openDB()).version,3);
+});

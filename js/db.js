@@ -1,10 +1,15 @@
+import {syncedSettings,project,resolveConflict} from './cloud/model.js';
 import {APP_VERSION} from './version.js';
 import {logCount,logTargetId,totalTalkCount,recordType,nextTalkCount} from './records.js';
 import {createPerson,suggestions} from './people.js';
 import {historyFor,dateKey,assertRecordableDate} from './calendar.js';
 let opening;
+let account=null;
+export const currentAccount=()=>account;
+export async function useAccount(id){if(opening)(await opening).close();opening=null;account=id;}
+export const changes=new EventTarget();
 export function openDB(){return opening??=new Promise((resolve,reject)=>{
-  const r=indexedDB.open('talk-flower',2);
+  const r=indexedDB.open(account?`talk-flower-user-${account}`:'talk-flower',3);
   r.onupgradeneeded=event=>{
     const db=r.result,tx=r.transaction;
     if(event.oldVersion===0){
@@ -14,6 +19,8 @@ export function openDB(){return opening??=new Promise((resolve,reject)=>{
       logs.createIndex('personId','personId');logs.createIndex('date','date');
       db.createObjectStore('settings',{keyPath:'key'});
     }
+    if(!db.objectStoreNames.contains('syncState'))db.createObjectStore('syncState',{keyPath:'id'});
+    if(event.oldVersion>=2)return;
     const people=tx.objectStore('people'),logs=tx.objectStore('dailyLogs');
     logs.createIndex('date_target',['date','targetId'],{unique:true});
     logs.createIndex('targetId','targetId');
@@ -29,7 +36,27 @@ export function openDB(){return opening??=new Promise((resolve,reject)=>{
   r.onblocked=()=>{opening=null;reject(new Error('別のタブを閉じて、もう一度開いてください'));};
 });}
 const request=r=>new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});
-export async function transact(stores,mode,fn){const db=await openDB();const tx=db.transaction(stores,mode);const done=new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error||new Error('保存できませんでした'));});try{const result=await fn(tx);await done;return result;}catch(e){try{tx.abort();}catch{}await done.catch(()=>{});throw e;}}
+export async function transact(stores,mode,fn,{track=true}={}){
+ const db=await openDB(),tracked=mode==='readwrite'&&account&&track;
+ const tx=db.transaction([...new Set([...stores,...(tracked?['syncState']:[])])],mode);
+ const done=new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error||new Error('保存できませんでした'));});
+ try{
+  let changed=false;const before={};if(tracked)for(const store of stores)if(['people','dailyLogs','settings'].includes(store))before[store]=await request(tx.objectStore(store).getAll());
+  const result=await fn(tx);
+  if(tracked)for(const [store,oldRows] of Object.entries(before)){
+   const rows=await request(tx.objectStore(store).getAll()),old=new Map(oldRows.map(r=>[r.id||r.key,r])),now=new Map(rows.map(r=>[r.id||r.key,r]));
+   for(const key of new Set([...old.keys(),...now.keys()])){
+    if(store==='settings'&&!syncedSettings.has(key))continue;
+    const prev=old.get(key),next=now.get(key);
+    if(prev&&next&&JSON.stringify(project(store,prev))===JSON.stringify(project(store,next)))continue;
+    changed=true;const prior=await request(tx.objectStore('syncState').get(`${store}:${key}`));
+    const updated_at=new Date(Math.max(Date.now(),Date.parse(prior?.updated_at||0)+1||0)).toISOString();
+    tx.objectStore('syncState').put({id:`${store}:${key}`,store,record:project(store,next||prev),deleted:!next,updated_at,mutation_id:crypto.randomUUID(),sync_status:'pending'});
+   }
+  }
+  await done;if(changed)changes.dispatchEvent(new Event('change'));return result;
+ }catch(e){try{tx.abort();}catch{}await done.catch(()=>{});throw e;}
+}
 export const all=store=>transact([store],'readonly',tx=>request(tx.objectStore(store).getAll()));
 export const put=(store,value)=>transact([store],'readwrite',tx=>request(tx.objectStore(store).put(value)));
 export const setting=async key=>(await all('settings')).find(s=>s.key===key)?.value;
@@ -122,4 +149,29 @@ export async function reorderIds(ids){
     people.sort((a,b)=>a.sortOrder-b.sortOrder).forEach(p=>{if(!ordered.includes(p.id))ordered.push(p.id);});
     ordered.forEach((id,sortOrder)=>store.put({...byId.get(id),sortOrder}));
   });
+}
+
+// Remote writes use the same transaction boundary, without producing new outbound changes.
+export async function applyRemote(metas){
+ return transact(['people','dailyLogs','settings','syncState'],'readwrite',async tx=>{
+  for(const remote of metas){
+   if(remote.store==='settings'&&!syncedSettings.has(remote.record.key))continue;
+   const state=tx.objectStore('syncState'),local=await request(state.get(remote.id));
+   if(resolveConflict(local,remote)!==remote)continue;
+   const store=tx.objectStore(remote.store),key=remote.record.id||remote.record.key;
+   if(remote.deleted){if(remote.store==='people'){const old=await request(store.get(key));store.put({...old,...remote.record,isActive:false});}else store.delete(key);}
+   else {const old=await request(store.get(key));store.put({...old,...remote.record,...(remote.store==='people'?{category:old?.category||'other'}:{})});}
+   state.put(remote);
+  }
+  const people=tx.objectStore('people'),logs=await request(tx.objectStore('dailyLogs').getAll());
+  for(const p of await request(people.getAll()))people.put({...p,...historyFor(logs.filter(l=>logTargetId(l)===p.id))});
+ },{track:false});
+}
+export async function markSent(id,mutation){return transact(['syncState'],'readwrite',async tx=>{const s=tx.objectStore('syncState'),r=await request(s.get(id));if(r?.mutation_id===mutation)s.put({...r,sync_status:'synced'});},{track:false});}
+export async function importGuest(snapshot){
+ return transact(['people','dailyLogs','settings'],'readwrite',tx=>{
+  snapshot.people.forEach(p=>tx.objectStore('people').put(p));
+  snapshot.dailyLogs.forEach(l=>{const targetId=logTargetId(l);tx.objectStore('dailyLogs').put({...l,id:`${l.date}:${targetId}`,targetId,personId:targetId});});
+  snapshot.settings.filter(s=>syncedSettings.has(s.key)).forEach(s=>tx.objectStore('settings').put(s));
+ });
 }
