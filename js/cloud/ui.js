@@ -1,7 +1,8 @@
+import {cleanCallbackURL} from './auth-link.js';
 import {showDiagnostics} from './diagnostics.js';
 import {APP_VERSION} from '../version.js';
 import * as db from '../db.js';
-import {client,sendCode,verifyCode} from './client.js';
+import {client,sendLink,verifyLink,authLinkAttempt} from './client.js';
 import {createSyncEngine} from './sync.js';
 import {stableUUID} from './model.js';
 import {escapeHTML as esc} from '../people.js';
@@ -14,11 +15,13 @@ export function paintCloud(){
  el.innerHTML=`<h2>クラウド同期</h2><p role="status">${esc(status)}</p><button type="button" data-storage-diagnostics>保存データを確認</button>`;
  if(!client){el.insertAdjacentHTML('beforeend','<p>クラウド接続の準備中です。これまでどおり端末内で利用できます。</p>');return;}
  if(session){el.insertAdjacentHTML('beforeend',`<p>ログイン済み</p>${db.currentAccount()?'<button data-cloud="sync">今すぐ同期</button>':'<button data-cloud="enable">クラウド同期を有効にする</button>'}<button data-cloud="logout">ログアウト</button><p class="small">ログアウトすると、ログイン前の端末内データに戻ります。</p>`);}
- else el.insertAdjacentHTML('beforeend',`<form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>確認コードを送る</button></form>${email?'<form id="cloud-code"><label>メールの確認コード<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required></label><button>ログイン</button></form>':''}<p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p>`);
+ else el.insertAdjacentHTML('beforeend',`<form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>ログイン用メールを送る</button></form><p class="small">届いたメールの「Confirm email address」または「Log In」を押してください。確認コードの入力は不要です。</p><details class="guide"><summary>ホーム画面版・別のブラウザが開く場合</summary><p>メールの確認リンクを長押ししてコピーし、この画面に戻って貼り付けてください。まだ開いていないリンクを使います。</p><form id="cloud-link"><label>確認リンク<input name="link" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="メールのリンクを貼り付け"></label><button>この画面でログイン</button></form><p class="small">確認リンクはログイン用です。他の人へ送らないでください。</p></details><p class="small">ブラウザとホーム画面版の保存先は別です。元のブラウザでクラウドに引き継いだあと、ホーム画面版では「クラウド側データを使う」を選びます。</p><p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p>`);
 }
 function setStatus(s){status=s;paintCloud();}
-function chooseMigration(){return new Promise(resolve=>{
- const d=document.createElement('dialog');d.innerHTML='<h2>この端末のデータをクラウドに引き継ぎますか？</h2><p>引き継ぐとクラウドの記録と合わせます。同じ記録がある場合は、この端末の内容を優先します。ログイン前の端末データは残します。</p><div class="cloud-options"><button data-choice="import">引き継ぐ</button><button data-choice="remote">クラウド側データを使う</button><button data-choice="cancel">キャンセル</button></div>';document.body.append(d);d.showModal();let result='cancel';d.addEventListener('click',e=>{const b=e.target.closest('[data-choice]');if(b){result=b.dataset.choice;d.close();}});d.addEventListener('close',()=>{d.remove();resolve(result);});
+async function chooseMigration(){
+ const rows=await db.all('dailyLogs'),people=await db.all('people');
+ return new Promise(resolve=>{
+ const d=document.createElement('dialog');d.innerHTML=`<h2>この端末のデータをクラウドに引き継ぎますか？</h2><p>このブラウザの記録：人物 ${people.length}件・会話 ${rows.length}件（${new Set(rows.map(r=>r.date)).size}日分）</p><p>引き継ぐとクラウドの記録と合わせます。同じ記録がある場合は、この端末の内容を優先します。ログイン前の端末データは残します。</p><div class="cloud-options"><button data-choice="import">引き継ぐ</button><button data-choice="remote">クラウド側データを使う</button><button data-choice="cancel">キャンセル</button></div>`;document.body.append(d);d.showModal();let result='cancel';d.addEventListener('click',e=>{const b=e.target.closest('[data-choice]');if(b){result=b.dataset.choice;d.close();}});d.addEventListener('close',()=>{d.remove();resolve(result);});
 });}
 async function withSwitch(fn){
  if(switching)return;switching=true;
@@ -73,11 +76,15 @@ export async function bootCloud(callbacks){
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')engine?.schedule(0);});
  setInterval(()=>{if(document.visibilityState==='visible')engine?.schedule(0);},30000);
  document.addEventListener('submit',async e=>{
-  if(!['cloud-email','cloud-code'].includes(e.target.id))return;e.preventDefault();
+  if(!['cloud-email','cloud-link'].includes(e.target.id))return;e.preventDefault();
   const form=e.target,b=form.querySelector('button');b.disabled=true;
-  try{if(form.id==='cloud-email'){const address=new FormData(form).get('email').trim();await sendCode(address);email=address;setStatus('メールの確認コードを入力してください');}
-   else {await verifyCode(email,new FormData(form).get('code').trim());email='';}}
-  catch{setStatus('ログインできませんでした。入力内容と通信状態を確認してください。');}finally{b.disabled=false;}
+  if(form.id==='cloud-link'){
+   let value=form.elements.link.value;form.elements.link.value='';
+   try{const next=await verifyLink(value);value='';await enqueue(()=>adopt(next));setStatus('ログインできました。クラウド同期を有効にして、使うデータを選んでください。');}
+   catch{setStatus('リンクを確認できませんでした。新しいメールの、まだ開いていない確認リンクをコピーしてください。');}finally{value='';b.disabled=false;}return;
+  }
+  try{const address=new FormData(form).get('email').trim();await sendLink(address);email=address;setStatus('メールを送りました。届いたメールのリンクを、このブラウザで開いてください。');}
+  catch{setStatus('メールを送れませんでした。入力内容と通信状態を確認し、少し待ってからお試しください。');}finally{b.disabled=false;}
  });
  document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-cloud]');if(!b||switching)return;b.disabled=true;
@@ -87,5 +94,12 @@ export async function bootCloud(callbacks){
  const remembered=localStorage.getItem('talk-flower-active-account');
  if(!navigator.onLine&&/^[a-f0-9-]{36}$/.test(remembered||'')){await enqueue(()=>adopt({user:{id:remembered}}));setStatus('オフラインです。端末に保存しています。');}
  client.auth.onAuthStateChange((_event,next)=>{if(_event==='INITIAL_SESSION'&&!next&&!navigator.onLine&&remembered)return;setTimeout(()=>{enqueue(()=>adopt(next)).catch(()=>setStatus('認証状態を確認できませんでした。端末には保存されています。'));},0);});
- const {data}=await client.auth.getSession();if(data.session||navigator.onLine||!remembered)await enqueue(()=>adopt(data.session));paintCloud();
+ const initialization=authLinkAttempt?await client.auth.initialize():null;
+ const {data}=await client.auth.getSession();if(data.session||navigator.onLine||!remembered)await enqueue(()=>adopt(data.session));
+ if(authLinkAttempt){
+  cleanCallbackURL(location,history);
+  await hooks.render?.();
+  setStatus(!initialization?.error&&data.session?(db.currentAccount()?'ログインできました。クラウド同期を再開します。':'ログインできました。クラウド同期は、引き継ぐデータを選んでから開始します。'):'ログインリンクを確認できませんでした。新しいメールを送り直してください。');
+ }
+ paintCloud();
 }
