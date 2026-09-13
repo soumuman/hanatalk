@@ -43,3 +43,16 @@ test('failed local transaction never leaves a partial record or pending entry',a
  let changes=0;const listener=()=>changes++;db.changes.addEventListener('change',listener);
  await db.ensureAppStartedAt('2026-01-01');const after=changes;await db.ensureAppStartedAt('2026-01-01');assert.equal(changes,after);db.changes.removeEventListener('change',listener);
 });
+
+test('unchanged periodic pulls do not redraw; real changes and deferred refreshes do',async()=>{
+ const user='33333333-3333-4333-8333-333333333333';await db.useAccount(user);
+ let row={id:user,user_id:user,display_name:'相手',type:'person',sort_order:0,is_active:true,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-02T00:00:00Z',mutation_id:'a',deleted_at:null},calls=0,ready=true;
+ const client={auth:{getUser:async()=>({data:{user:{id:user}}})},rpc:async()=>({error:null}),from:table=>({select(){return this;},eq(){return this;},order(){return this;},range:async()=>({data:table==='people'?[row]:[],error:null})})};
+ const engine=createSyncEngine({db,client,user,onPull:()=>{calls++;return ready;}});
+ try{
+  await engine.run();assert.equal(calls,1);await engine.run();await engine.run();assert.equal(calls,1);
+  row={...row,updated_at:'2026-01-03T00:00:00Z',mutation_id:'b'};await engine.run();assert.equal(calls,1);
+  row={...row,display_name:'変更した相手',updated_at:'2026-01-04T00:00:00Z',mutation_id:'c'};ready=false;await engine.run();assert.equal(calls,2);
+  ready=true;await engine.run();assert.equal(calls,3);await engine.run();assert.equal(calls,3);assert.equal((await db.all('people'))[0].displayName,'変更した相手');
+ }finally{await engine.stop();}
+});

@@ -97,7 +97,7 @@ app.addEventListener('click',async e=>{const dayLink=e.target.closest('a.day');i
 window.addEventListener('hashchange',()=>render().then(()=>{if(location.hash.startsWith('#day/'))window.scrollTo(0,0);}).catch(()=>notify('記録を読み込めませんでした')));
 window.addEventListener('pageshow',()=>{if(!busy)render().catch(()=>{});});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')stopSounds();if(document.visibilityState==='visible'&&!busy)render().catch(()=>{});});
-render().then(()=>bootCloud({render,refresh:async()=>{if(!busy&&!cloudSwitching&&!document.querySelector('dialog')&&!['INPUT','SELECT'].includes(document.activeElement?.tagName))await render();},lock:async()=>{cloudSwitching=true;app.inert=true;while(busy||renderCount||document.querySelector('dialog'))await new Promise(r=>setTimeout(r,20));},unlock:()=>{cloudSwitching=false;app.inert=false;}}).catch(()=>notify('クラウドに接続できませんでした。端末には保存されています。'))).catch(()=>{app.innerHTML='<section><h1>記録を開けませんでした</h1><p>ブラウザの保存領域を確認し、再読み込みしてください。</p><button data-action="update-app">再読み込み</button></section>';});
+render().then(()=>bootCloud({render,refresh:async()=>{if(!busy&&!cloudSwitching&&!document.querySelector('dialog')&&!['INPUT','SELECT'].includes(document.activeElement?.tagName)){await render();return true;}return false;},lock:async()=>{cloudSwitching=true;app.inert=true;while(busy||renderCount||document.querySelector('dialog'))await new Promise(r=>setTimeout(r,20));},unlock:()=>{cloudSwitching=false;app.inert=false;}}).catch(()=>notify('クラウドに接続できませんでした。端末には保存されています。'))).catch(()=>{app.innerHTML='<section><h1>記録を開けませんでした</h1><p>ブラウザの保存領域を確認し、再読み込みしてください。</p><button data-action="update-app">再読み込み</button></section>';});
 registerUpdates(notify);
 
 enableDragOrder(app,{

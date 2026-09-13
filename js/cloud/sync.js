@@ -1,6 +1,6 @@
 import {tableFor,toRemote,fromRemote} from './model.js';
 export function createSyncEngine({db,client,user,onStatus=()=>{},onPull=()=>{}}){
- let stopped=false,running=null,timer,retry=2000;
+ let stopped=false,running=null,timer,retry=2000,refreshPending=false;
  const valid=()=>!stopped&&db.currentAccount()===user;
  async function work(){
   if(!valid())return;
@@ -25,11 +25,11 @@ export function createSyncEngine({db,client,user,onStatus=()=>{},onPull=()=>{}})
      const {data,error}=await client.from(table).select('*').eq('user_id',user).order('id').range(offset,offset+499);
      if(error)throw error;if(!valid())return;
      if(data.some(r=>r.user_id!==user))throw Error('owner');
-     await db.applyRemote(data.map(r=>fromRemote(store,r)));
+     if(await db.applyRemote(data.map(r=>fromRemote(store,r))))refreshPending=true;
      if(data.length<500)break;offset+=500;
     }
    }
-   retry=2000;onStatus('同期しました');await onPull();return true;
+   retry=2000;onStatus('同期しました');if(refreshPending&&await onPull()!==false)refreshPending=false;return true;
   }catch{if(valid()){onStatus('クラウド同期できませんでした。端末には保存されています。');schedule(retry);retry=Math.min(60000,retry*2);}}
  }
  function run(){if(running)return running;running=(async()=>{if(globalThis.navigator?.locks)return navigator.locks.request(`talk-flower-sync-${user}`,work);return work();})().finally(()=>{running=null;});return running;}

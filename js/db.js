@@ -155,17 +155,24 @@ export async function reorderIds(ids){
 export async function applyRemote(metas,{protectPending=false}={}){
  return transact(['people','dailyLogs','settings','syncState'],'readwrite',async tx=>{
   if(protectPending&&(await request(tx.objectStore('syncState').getAll())).some(r=>r.sync_status==='pending'))throw Error('pending_local');
+  let visibleChanged=false;
   for(const remote of metas){
    if(remote.store==='settings'&&!syncedSettings.has(remote.record.key))continue;
    const state=tx.objectStore('syncState'),local=await request(state.get(remote.id));
    if(resolveConflict(local,remote)!==remote)continue;
    const store=tx.objectStore(remote.store),key=remote.record.id||remote.record.key;
+   const before=await request(store.get(key)),oldVisible=before?project(remote.store,before):null;
    if(remote.deleted){if(remote.store==='people'){const old=await request(store.get(key));store.put({...old,...remote.record,isActive:false});}else store.delete(key);}
    else {const old=await request(store.get(key));store.put({...old,...remote.record,...(remote.store==='people'?{category:old?.category||'other'}:{})});}
+   const after=await request(store.get(key));
+   if(JSON.stringify(oldVisible)!==JSON.stringify(after?project(remote.store,after):null))visibleChanged=true;
    state.put(remote);
   }
-  const people=tx.objectStore('people'),logs=await request(tx.objectStore('dailyLogs').getAll());
-  for(const p of await request(people.getAll()))people.put({...p,...historyFor(logs.filter(l=>logTargetId(l)===p.id))});
+  if(visibleChanged){
+   const people=tx.objectStore('people'),logs=await request(tx.objectStore('dailyLogs').getAll());
+   for(const p of await request(people.getAll()))people.put({...p,...historyFor(logs.filter(l=>logTargetId(l)===p.id))});
+  }
+  return visibleChanged;
  },{track:false});
 }
 export async function markSent(id,mutation){return transact(['syncState'],'readwrite',async tx=>{const s=tx.objectStore('syncState'),r=await request(s.get(id));if(r?.mutation_id===mutation)s.put({...r,sync_status:'synced'});},{track:false});}

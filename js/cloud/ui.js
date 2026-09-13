@@ -46,12 +46,15 @@ async function beginRestore(){
 export function cloudPanel(){return '<div id="cloud-panel" class="info-box cloud-panel"></div>';}
 export function paintCloud(){
  const el=document.querySelector('#cloud-panel');if(!el)return;
+ const identity=(session?.user?.id||'guest')+':'+(db.currentAccount()||'local');
+ if(el.dataset.identity===identity){el.querySelector('[role=status]').textContent=status;return;}
+ el.dataset.identity=identity;
  el.innerHTML=`<h2>クラウド同期</h2><p role="status">${esc(status)}</p><button type="button" data-storage-diagnostics>保存データを確認</button>`;
  if(!client){el.insertAdjacentHTML('beforeend','<p>クラウド接続の準備中です。これまでどおり端末内で利用できます。</p>');return;}
  if(session){el.insertAdjacentHTML('beforeend',`<p>ログイン済み</p>${db.currentAccount()?'<button data-cloud="sync">今すぐ同期</button>':'<button data-cloud="enable">クラウド同期を有効にする</button>'}<button data-cloud="logout">ログアウト</button><p class="small">ログアウトすると、ログイン前の端末内データに戻ります。</p>`);}
  else el.insertAdjacentHTML('beforeend',`<p><button type="button" data-google-login>Googleでログイン</button></p><p class="small">端末間で同じGoogleアカウントを選んでください。</p><details class="guide"><summary>メールでログインする</summary><form id="cloud-email"><label>メールアドレス<input name="email" type="email" autocomplete="email" required value="${esc(email)}"></label><button>ログイン用メールを送る</button></form><p class="small">届いたメールの「Confirm email address」または「Log In」を押してください。確認コードの入力は不要です。</p><details class="guide"><summary>ホーム画面版・別のブラウザが開く場合</summary><p>メールの確認リンクを長押ししてコピーし、この画面に戻って貼り付けてください。まだ開いていないリンクを使います。</p><form id="cloud-link"><label>確認リンク<input name="link" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="メールのリンクを貼り付け"></label><button>この画面でログイン</button></form><p class="small">確認リンクはログイン用です。他の人へ送らないでください。</p></details><p class="small">ブラウザとホーム画面版の保存先は別です。元のブラウザでクラウドに引き継いだあと、ホーム画面版では「クラウド側データを使う」を選びます。</p><p class="small">メールアドレスは認証のためSupabase Authで管理します。人物・会話の記録には保存しません。</p></details>`);
 }
-function setStatus(s){status=s;paintCloud();}
+function setStatus(s){status=s;const el=document.querySelector('#cloud-panel [role=status]');if(el&&el.textContent!==s)el.textContent=s;}
 async function chooseMigration(){
  const rows=await db.all('dailyLogs'),people=await db.all('people');
  return new Promise(resolve=>{
