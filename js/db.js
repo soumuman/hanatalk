@@ -152,8 +152,9 @@ export async function reorderIds(ids){
 }
 
 // Remote writes use the same transaction boundary, without producing new outbound changes.
-export async function applyRemote(metas){
+export async function applyRemote(metas,{protectPending=false}={}){
  return transact(['people','dailyLogs','settings','syncState'],'readwrite',async tx=>{
+  if(protectPending&&(await request(tx.objectStore('syncState').getAll())).some(r=>r.sync_status==='pending'))throw Error('pending_local');
   for(const remote of metas){
    if(remote.store==='settings'&&!syncedSettings.has(remote.record.key))continue;
    const state=tx.objectStore('syncState'),local=await request(state.get(remote.id));

@@ -1,3 +1,4 @@
+import {restoreRequested,requestRestore,clearRestore,fetchRestoreSnapshot,applyRestoreSnapshot} from './restore.js';
 import {emailFailureMessage} from './auth-errors.js';
 import {cleanCallbackURL} from './auth-link.js';
 import {showDiagnostics} from './diagnostics.js';
@@ -10,6 +11,38 @@ import {escapeHTML as esc} from '../people.js';
 let operations=Promise.resolve();
 const enqueue=fn=>{const task=operations.then(fn);operations=task.catch(()=>{});return task;};
 let engine,session=null,status='端末内に保存しています',email='',hooks={},switching=false;
+let authReady=false,restoring=false,restoreError='',restored=false;
+export function cloudEntryState(){return !authReady||restoring?'loading':restoreError?'error':null;}
+export function cloudEntryError(){return restoreError;}
+async function restoreAccount(next){
+ session=next;restoring=true;restoreError='';
+ await hooks.render?.();
+ const previous=db.currentAccount();
+ try{await withSwitch(async()=>{
+  await engine?.stop();engine=null;
+  const snapshot=await fetchRestoreSnapshot(client,next.user.id);
+  const {error}=await client.from('profiles').upsert({user_id:snapshot.user},{onConflict:'user_id',ignoreDuplicates:true});if(error)throw error;
+  await db.useAccount(snapshot.user);
+  const hasRecords=await applyRestoreSnapshot(db,snapshot);
+  await db.put('settings',{key:'cloudEnrolled',value:true});
+  localStorage.setItem(`talk-flower-enrolled-${snapshot.user}`,'true');localStorage.setItem('talk-flower-active-account',snapshot.user);
+  clearRestore();restored=true;
+  history.replaceState(history.state,'',location.pathname+location.search+(hasRecords?'#calendar':'#register'));
+  start();engine.schedule(0);
+ });}catch(error){
+  clearRestore();await engine?.stop();engine=null;await db.useAccount(previous);
+  restoreError=error.message==='pending_local'?'この端末に未同期の記録があるため、自動読み込みを止めました。端末の記録に戻り、同期状態を確認してください。':'記録を読み込めませんでした。端末の記録は残っています。通信状態を確認して再試行してください。';
+ }finally{restoring=false;await hooks.render?.();}
+}
+async function beginRestore(){
+ if(restoring)return;
+ restoreError='';requestRestore();restoring=true;await hooks.render?.();
+ try{
+  const {data,error}=await client.auth.getSession();if(error)throw error;
+  if(data.session){restoring=false;await enqueue(()=>restoreAccount(data.session));}
+  else await signInGoogle();
+ }catch(error){restoring=false;clearRestore();restoreError=error.message==='google_not_configured'?'Googleログインは設定準備中です。':'ログインを開始できませんでした。通信状態を確認して再試行してください。';await hooks.render?.();}
+}
 export function cloudPanel(){return '<div id="cloud-panel" class="info-box cloud-panel"></div>';}
 export function paintCloud(){
  const el=document.querySelector('#cloud-panel');if(!el)return;
@@ -57,7 +90,7 @@ async function enable(){
  });
 }
 async function adopt(next){
- const user=next?.user?.id||null;session=next;if(!user)localStorage.removeItem('talk-flower-active-account');
+ const user=next?.user?.id||null;if(user&&restoreRequested())return restoreAccount(next);if(restoreError){session=next;return;}session=next;if(!user)localStorage.removeItem('talk-flower-active-account');
  if(db.currentAccount()===user){paintCloud();return;}
  await withSwitch(async()=>{
   await engine?.stop();engine=null;await db.useAccount(null);
@@ -70,8 +103,9 @@ async function adopt(next){
 }
 export async function bootCloud(callbacks){
  hooks=callbacks;
+ document.addEventListener('click',e=>{if(e.target.closest('[data-restore-login]'))beginRestore();if(e.target.closest('[data-restore-cancel]')){clearRestore();restoreError='';history.replaceState(history.state,'',location.pathname+'#settings');hooks.render?.();}});
  document.addEventListener('click',e=>{if(e.target.closest('[data-storage-diagnostics]'))showDiagnostics({account:db.currentAccount(),version:APP_VERSION,loggedIn:!!session,origin:location.origin,standalone:!!navigator.standalone||matchMedia('(display-mode: standalone)').matches});});
- if(!client){paintCloud();return;}
+ if(!client){authReady=true;await hooks.render?.();paintCloud();return;}
  db.changes.addEventListener('change',()=>engine?.schedule());
  window.addEventListener('online',()=>engine?.schedule(0));
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')engine?.schedule(0);});
@@ -97,12 +131,15 @@ export async function bootCloud(callbacks){
  const remembered=localStorage.getItem('talk-flower-active-account');
  if(!navigator.onLine&&/^[a-f0-9-]{36}$/.test(remembered||'')){await enqueue(()=>adopt({user:{id:remembered}}));setStatus('オフラインです。端末に保存しています。');}
  client.auth.onAuthStateChange((_event,next)=>{if(_event==='INITIAL_SESSION'&&!next&&!navigator.onLine&&remembered)return;setTimeout(()=>{enqueue(()=>adopt(next)).catch(()=>setStatus('認証状態を確認できませんでした。端末には保存されています。'));},0);});
+ try{
  const initialization=authLinkAttempt?await client.auth.initialize():null;
  const {data}=await client.auth.getSession();if(data.session||navigator.onLine||!remembered)await enqueue(()=>adopt(data.session));
- if(authLinkAttempt){
+ if(authLinkAttempt&&!restored&&!restoreRequested()){
   cleanCallbackURL(location,history);
   await hooks.render?.();
   setStatus(!initialization?.error&&data.session?(db.currentAccount()?'ログインできました。クラウド同期を再開します。':'ログインできました。クラウド同期は、引き継ぐデータを選んでから開始します。'):'ログインリンクを確認できませんでした。新しいメールを送り直してください。');
  }
+ if(restoreRequested()&&!data.session)restoreError='ログインが完了していません。もう一度ログインしてください。';
+ }finally{authReady=true;await hooks.render?.();}
  paintCloud();
 }

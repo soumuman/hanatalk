@@ -92,3 +92,11 @@
 .entry .saved{margin:10px 0 0;font-size:13px}
 .entry-view #notice:not(:empty){bottom:calc(12px + env(safe-area-inset-bottom));pointer-events:none;padding:10px 16px}
 @media(max-height:650px){.entry .flower-stage .large{width:136px;height:147px}.entry .bloom-message{margin:2px 0}.entry .entry-prompt{margin:6px 0}}
+
+/* Equal entry points for first-time and returning users. */
+.welcome{display:grid;gap:20px;padding-top:20px}
+.welcome-option{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--surface)}
+.welcome-option h1{font-family:inherit;font-size:20px;margin:0 0 10px;font-weight:600}
+.welcome-option p{font-size:15px;margin:10px 0;line-height:1.7}
+.welcome-option .small{font-size:14px;margin-bottom:0}
+.welcome-button{display:block;width:100%;min-height:48px;padding:12px 6px;text-align:center;background:var(--soft-green);color:var(--ink);border:1px solid #bcccb6;border-radius:12px;font-size:15px;font-weight:500}
