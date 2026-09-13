@@ -21,7 +21,7 @@ export function linkAuthOptions(location,history){return {
 export function emailLinkRequest(email,origin){
  const url=new URL(origin);
  if(url.protocol!=='https:'&&!(['localhost','127.0.0.1'].includes(url.hostname)&&url.protocol==='http:'))throw Error('HTTPS is required');
- return {email,options:{emailRedirectTo:url.origin+'/'}};
+ return {email,options:{emailRedirectTo:new URL('./',url).href}};
 }
 // A copied, unused confirmation link can authenticate the current Home Screen app.
 // Never follow a supplied URL or persist it; verification is handled by the SDK.

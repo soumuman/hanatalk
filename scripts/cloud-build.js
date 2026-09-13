@@ -1,6 +1,7 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {build} from 'esbuild';
-let env={...process.env};
+const defaults=JSON.parse(await readFile(new URL('../config/public.json',import.meta.url),'utf8'));
+let env={SUPABASE_URL:defaults.url,SUPABASE_PUBLISHABLE_KEY:defaults.key,...process.env};
 for(const file of ['.env','.env.local']){try{for(const line of (await readFile(file,'utf8')).split(/\r?\n/)){const m=line.match(/^([A-Z_]+)=(.*)$/);if(m)env[m[1]]=m[2].trim().replace(/^['"]|['"]$/g,'');}}catch(e){if(e.code!=='ENOENT')throw e;}}
 const url=env.SUPABASE_URL||'',key=env.SUPABASE_PUBLISHABLE_KEY||'';
 if(url||key){if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url))throw Error('Use your HTTPS Supabase project URL');

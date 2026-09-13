@@ -47,3 +47,9 @@ test('copied confirmation is verified by SDK in the current storage without navi
  }});
  try{const {data,error}=await auth.verifyOtp(confirmationRequest('https://example.supabase.co/auth/v1/verify?token='+ 'a'.repeat(64)+'&type=magiclink','https://example.supabase.co'));assert.equal(error,null);assert.ok(data.session);assert.ok(map.has('paste-test'));}finally{await auth.dispose();}
 });
+
+test('authentication redirects retain Pages subpaths and discard callback fragments/query',()=>{
+ assert.equal(emailLinkRequest('test@example.test','https://soumuman.github.io/hanatalk/').options.emailRedirectTo,'https://soumuman.github.io/hanatalk/');
+ assert.equal(emailLinkRequest('test@example.test','https://soumuman.github.io/hanatalk/index.html#settings').options.emailRedirectTo,'https://soumuman.github.io/hanatalk/');
+ assert.equal(emailLinkRequest('test@example.test','https://soumuman.github.io/hanatalk/?code=secret#settings').options.emailRedirectTo,'https://soumuman.github.io/hanatalk/');
+});

@@ -1,7 +1,8 @@
-const CACHE='talk-flower-release-c023';
+const PREFIX='talk-flower:'+new URL(self.registration.scope).pathname+':';
+const CACHE=PREFIX+'c024';
 const ASSETS=['./','./index.html','./css/style.css','./js/app.js','./js/cloud/client.js','./js/cloud/auth-link.js','./js/cloud/google-auth.js','./js/cloud/restore.js','./js/cloud/auth-errors.js','./js/cloud/config.js','./js/cloud/model.js','./js/cloud/sync.js','./js/cloud/ui.js','./js/cloud/diagnostics.js','./js/vendor/supabase.js','./js/cards.js','./js/records.js','./js/drag-order.js','./js/version.js','./js/updates.js','./js/db.js','./js/calendar.js','./js/seasons.js','./js/people.js','./js/flower.js','./js/flowers/botanical.js','./js/comments.js','./js/sound.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(async c=>{await c.addAll(ASSETS.map(url=>new Request(url,{cache:'reload'})));await self.skipWaiting();})));
-self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('talk-flower-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).catch(error=>{if(event.request.mode==='navigate')return caches.match('./index.html');throw error;})));});
+self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||!event.request.url.startsWith(self.registration.scope))return;event.respondWith(caches.open(CACHE).then(cache=>cache.match(event.request).then(hit=>hit||fetch(event.request).catch(error=>{if(event.request.mode==='navigate')return cache.match(new URL('index.html',self.registration.scope).href);throw error;}))));});
 
 self.addEventListener('message',event=>{if(event.data?.type==='ACTIVATE_UPDATE')self.skipWaiting();});

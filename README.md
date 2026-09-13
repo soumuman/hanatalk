@@ -1,4 +1,79 @@
-# 今日、誰としゃべった？
+# HanaTalk
+
+## GitHub Pagesテスト配布（c024）
+
+配布先として設定するURL: **https://soumuman.github.io/hanatalk/**
+リポジトリ: https://github.com/soumuman/hanatalk
+
+このリリースにはGitHub Pages公開用の設定を含みます。URLが実際に表示されるのは、以下の配置とPages設定が完了してからです。
+
+### 公開手順
+
+1. 上記リポジトリを用意し、このソースのファイルをmainブランチのルートに配置します。`index.html`、`package.json`、`package-lock.json`、`js/`、`css/`、`icons/`、`scripts/`、`config/`、`tests/`、`supabase/`、`.github/` 等を含めます。`.env`・`.env.local`・node_modules・テスト用publicフォルダはアップロードしません。
+2. GitHub **Settings → Pages → Build and deployment → Source → GitHub Actions** を選びます。ビルドが必要なため「Deploy from a branch / root」は選びません。
+3. **Actions → Publish HanaTalk → Run workflow → main** を実行します。以降はmainへのpushで自動公開します。
+4. Actionsが成功したら `https://soumuman.github.io/hanatalk/` を開きます。GitHub/ChatGPT未ログインのブラウザでも表示されることを確認します。無料プランの場合は公開リポジトリを使用してください。
+
+ビルドは `npm ci → npm test → npm run build`、公開対象はdistだけです。SQLや環境ファイルをWeb配信しません。`.openai/hosting.json` は旧Sitesの管理用メタデータで、GitHubへの移行パッケージには含めません。
+
+### 公開情報と秘密情報
+
+`config/public.json` にSupabase Project URLとPublishable keyのみを配置しています。これらはブラウザへ公開可能な接続情報です。ローカルの `.env.local` で上書きできます。個人データの保護は既存のSupabase AuthとRLSが行います。
+
+service_role/secret key・DBパスワード・Google Client Secret・管理トークンはフロントにもGitHubにも置きません。Google Client SecretはSupabase Dashboardにのみ保持します。公開キーは秘密ではありませんが、RLSとA/Bユーザー隔離確認は引き続き必要です。
+
+### Supabase Dashboardの変更
+
+Authentication → URL Configuration:
+
+- **Site URL**: `https://soumuman.github.io/hanatalk/`
+- **Redirect URLs**に追加: `https://soumuman.github.io/hanatalk/`
+- 移行期間中は旧 `https://daily-talk-flower-seki.bxd05575.chatgpt.site/` も許可リストに残し、旧URLから同期できるようにします。
+
+Authentication → Sign In / Providers → Googleは既存のClient ID/SecretとEnabledを維持します。SQLやRLSの変更は不要です。
+
+アプリの戻り先は実行中のモジュールURLからアプリのディレクトリを算出します。ドメイン直下に固定せず、GitHub Pagesでは `/hanatalk/` を保持します。カレンダー等の画面は `#calendar` 等のハッシュで切り替えるため、Pages側の追加ルーティングは不要です。
+
+### Google Auth Platformの変更
+
+Clients → 使用中のWeb application:
+
+- **Authorized JavaScript origins**に `https://soumuman.github.io` を追加（パスは付けません）。
+- **Authorized redirect URIs**の `https://eiiluzkqocuhcrwepesu.supabase.co/auth/v1/callback` はそのまま維持します。Googleの戻り先はSupabaseであり、Pages URLに置き換えません。
+- Brandingの表示名をHanaTalkへ変更します。Testing中ならAudienceのTest usersにテストするGoogleアカウントを追加します。一般配布する場合はGoogleの公開・審査要件を確認してください。
+
+### 既存データの引き継ぎ
+
+公開URLが変わるとブラウザのオリジンが変わり、IndexedDBと認証セッションは別になります。旧URLの保存データは消しません。
+
+1. 正しい記録のある旧URLで同期完了を確認します。
+2. 新URLで「ログインして記録を引き継ぐ」を押し、同じGoogleアカウントを選びます。
+3. 新URLのカレンダーと人物を確認します。新しい初期カードを旧データへ勝手に混ぜません。
+4. 元のブラウザ/ホーム画面版は、記録を確認できるまで残してください。
+
+### ローカル・PWA確認
+
+```sh
+npm ci
+npm test
+npm run build
+npm run preview:pages
+```
+
+`http://127.0.0.1:4174/hanatalk/` はサブパス確認用です。Googleログイン実機確認は新しいHTTPS公開URLで行います。
+
+- iPhone SafariとiPadで公開URLを開き、タイトル・人物入力例「鈴木さん、カラオケ仲間 など」・3列カード・カレンダーを確認。
+- 同じGoogleアカウントでログインし、戻り先が `/hanatalk/` のまま、記録が読み込まれることを確認。
+- 共有 → ホーム画面に追加。名称が **HanaTalk** であることを確認し、追加したアイコンから起動。
+- ホーム画面版で再認証が必要なら、既存利用の入口からログイン。ブラウザ/ホーム画面版で同じ人物と記録になるか確認。
+- 一度オンラインで起動後、オフラインで再起動し記録が残るか確認。再接続後は同期完了を確認。
+
+Service Worker・アイコン・manifestは相対URLです。start_url/scope/idはいずれも `./` で、インストール先の `/hanatalk/` に解決します。キャッシュはService Workerのscopeごとに分離し、別のGitHub Pagesアプリのキャッシュを削除しません。
+
+確認済み: 自動テスト43件。ローカル/hanatalk/配信で390×700と820×1180のChromium表示、404なし、IndexedDB、オフライン再起動、manifest名/scope。実際の公開URL、iPhone Safari/iPad実機、Google認証と本番同期はGitHub公開・Dashboard設定後に確認が必要です。
+
+---
+
 
 ひとことの会話を、季節の花で振り返るスマートフォン向けPWAです。HTML / CSS / Vanilla JavaScriptのPWAです。端末内保存はログイン不要で、クラウド同期には同梱の公式Supabaseクライアントを使用します。人物情報と日付は端末内のIndexedDBに保存します。
 
@@ -342,7 +417,7 @@ Safari/Chromeのブラウザとホーム画面版は、端末内保存先が分�
 メール送信の代わりに「Googleでログイン」を主な入口にします。既存のメール方式は折りたたみ内に残します。Googleプロバイダが未設定なら画面に準備中と表示し、リダイレクトしません。
 
 1. https://console.cloud.google.com/ でプロジェクトを作成し、Google Auth Platformを開きます。
-2. Brandingでアプリ名「今日、誰としゃべった？」、サポート・連絡用メールを登録します。
+2. Brandingでアプリ名「HanaTalk」、サポート・連絡用メールを登録します。
 3. AudienceはExternal（外部）。テスト中はTest usersへ使用するGoogleアカウントを追加します。
 4. ClientsでOAuthクライアントを作成し、種類はWeb applicationを選びます。
 5. Authorized JavaScript origins: `https://daily-talk-flower-seki.bxd05575.chatgpt.site`

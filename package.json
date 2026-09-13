@@ -1,1 +1,19 @@
-{"name":"talk-flower","private":true,"type":"module","scripts":{"dev":"node server.js","build":"node build.js","test":"node --test tests/*.test.js"},"devDependencies":{"@electric-sql/pglite":"^0.5.8","esbuild":"^0.28.2","fake-indexeddb":"6.2.4"},"dependencies":{"@supabase/supabase-js":"^2.116.0"}}
+{
+  "name": "talk-flower",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "node build.js",
+    "test": "node --test tests/*.test.js",
+    "preview:pages": "node scripts/preview-pages.js"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "esbuild": "^0.28.2",
+    "fake-indexeddb": "6.2.4"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  }
+}
