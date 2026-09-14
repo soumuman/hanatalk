@@ -100,3 +100,14 @@
 .welcome-option p{font-size:15px;margin:10px 0;line-height:1.7}
 .welcome-option .small{font-size:14px;margin-bottom:0}
 .welcome-button{display:block;width:100%;min-height:48px;padding:12px 6px;text-align:center;background:var(--soft-green);color:var(--ink);border:1px solid #bcccb6;border-radius:12px;font-size:15px;font-weight:500}
+/* c025: a quiet first visit, using the existing onboarding completion flag. */
+.welcome-view .brand{display:none}
+.welcome-view .shell{background:var(--bg)}
+.title-welcome{min-height:calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 20px}
+.welcome-sprout .sprout{display:block;width:108px;height:108px;margin:0 auto 14px}
+.title-welcome h1{font-family:Georgia,serif;font-size:44px;line-height:1.2;letter-spacing:.02em;margin:0 0 12px}
+.title-welcome .welcome-tagline{font-size:18px;color:var(--ink);margin:0}
+.title-welcome .welcome-description{font-size:16px;line-height:1.9;margin:24px 0 28px}
+.title-welcome .welcome-start{width:190px;min-height:48px;padding:12px 20px}
+.title-welcome .welcome-install{font-size:14px;margin-top:12px;padding:10px 2px;color:var(--muted)}
+@media(max-height:580px){.welcome-sprout .sprout{width:76px;height:76px;margin-bottom:8px}.title-welcome .welcome-description{margin:16px 0 20px}.title-welcome h1{font-size:38px}}

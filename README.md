@@ -444,3 +444,6 @@ Google Client SecretはSupabaseサーバー側だけで保持します。フロ�
 - Auth状態/Google認証はclient.jsとgoogle-auth.js、復元はrestore.js、継続同期はsync.js、画面状態はui.jsです。
 
 検証: 自動テスト41件。テスト専用ブラウザとモック認証/クラウドで、通常/standaloneフラグ、読み込み表示、自動有効化、再読み込みの重複防止、空クラウド、取得失敗を確認。実際のGoogle認証とiPhoneホーム画面からの復帰は実端末で要確認です。OAuthが別ブラウザで開く場合、そのブラウザとホーム画面版の保存領域は自動共有されません。
+## c025 初回タイトル画面
+
+既存のIndexedDB settings.initializedが未完了のときだけタイトル画面を表示します。「はじめる」は#registerへの移動のみで、人物登録の「完了」で従来通り初期設定を完了します。途中終了時は未完了の登録またはタイトルに戻り、登録済みカードは保持します。ホーム画面追加の案内はdisplay-mode: standaloneまたはnavigator.standalone時には非表示です。記録引き継ぎは人物登録画面の「すでに記録がある方」、または人物・設定から利用できます。
