@@ -31,7 +31,7 @@ async function restoreAccount(next){
   start();engine.schedule(0);
  });}catch(error){
   clearRestore();await engine?.stop();engine=null;await db.useAccount(previous);
-  restoreError=error.message==='pending_local'?'この端末に未同期の記録があるため、自動読み込みを止めました。端末の記録に戻り、同期状態を確認してください。':'記録を読み込めませんでした。端末の記録は残っています。通信状態を確認して再試行してください。';
+  restoreError=error.message==='pending_local'?'この端末に未同期の記録があるため、自動読み込みを止めました。トップに戻り、人物・設定から同期状態を確認してください。':'記録を読み込めませんでした。端末の記録は残っています。通信状態を確認して再試行してください。';
  }finally{restoring=false;await hooks.render?.();}
 }
 async function beginRestore(){
@@ -106,7 +106,7 @@ async function adopt(next){
 }
 export async function bootCloud(callbacks){
  hooks=callbacks;
- document.addEventListener('click',e=>{if(e.target.closest('[data-restore-login]'))beginRestore();if(e.target.closest('[data-restore-cancel]')){clearRestore();restoreError='';history.replaceState(history.state,'',location.pathname+'#settings');hooks.render?.();}});
+ document.addEventListener('click',e=>{if(e.target.closest('[data-restore-login]'))beginRestore();if(e.target.closest('[data-restore-cancel]')){clearRestore();restoreError='';history.replaceState(history.state,'',location.pathname+location.search+'#calendar');hooks.render?.();}});
  document.addEventListener('click',e=>{if(e.target.closest('[data-storage-diagnostics]'))showDiagnostics({account:db.currentAccount(),version:APP_VERSION,loggedIn:!!session,origin:location.origin,standalone:!!navigator.standalone||matchMedia('(display-mode: standalone)').matches});});
  if(!client){authReady=true;await hooks.render?.();paintCloud();return;}
  db.changes.addEventListener('change',()=>engine?.schedule());
