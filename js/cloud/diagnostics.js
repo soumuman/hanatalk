@@ -33,7 +33,7 @@ export async function collectDiagnostics({account=null,version='',loggedIn=false
  const current=account?await inspectDatabase(`talk-flower-user-${account}`):legacy;
  return {version,origin,launch:standalone?'ホーム画面アプリ':'ブラウザ',loggedIn,display:account?'ログイン後の保存先':'ログイン前の保存先',legacy,current,message:diagnoseStorage(legacy,current,!!account)};
 }
-export async function showDiagnostics(context){
+export async function showDiagnostics(context={}){
  const d=document.createElement('dialog');
  const heading=document.createElement('h2');heading.textContent='保存データの確認';
  const content=document.createElement('div');content.textContent='この端末の記録件数を確認しています…';
@@ -43,7 +43,7 @@ export async function showDiagnostics(context){
  content.replaceChildren();
  const line=text=>{const p=document.createElement('p');p.textContent=text;content.append(p);};
  if(!report){line('確認できませんでした。データが消えたとは判断できません。');return;}
- line(`バージョン ${report.version} ／ ${report.launch}`);line(`アプリの場所：${report.origin}`);
+ line(`バージョン ${report.version} ／ ${report.launch}`);line(`アプリの場所：${report.origin}`);if(context.email)line(`Googleアカウント：${context.email}`);
  line(`${report.loggedIn?'アプリでログイン済み':'アプリでは未ログイン'} ／ 表示中：${report.display}`);
  for(const [label,result] of [['ログイン前の保存先',report.legacy],['現在表示中の保存先',report.current]]){
   line(result.state==='ready'?`${label}：人物 ${result.people}件 ／ 会話記録 ${result.logRows}件（${result.talkDays}日分） ／ 未同期 ${result.pending}件 ／ 取消情報 ${result.tombstones}件`:`${label}：${result.state==='absent'?'このブラウザにはありません':'確認できませんでした'}`);

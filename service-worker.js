@@ -1,5 +1,5 @@
 const PREFIX='talk-flower:'+new URL(self.registration.scope).pathname+':';
-const CACHE=PREFIX+'c026';
+const CACHE=PREFIX+'c027';
 const ASSETS=['./','./index.html','./css/style.css','./js/app.js','./js/cloud/client.js','./js/cloud/auth-link.js','./js/cloud/google-auth.js','./js/cloud/restore.js','./js/cloud/auth-errors.js','./js/cloud/config.js','./js/cloud/model.js','./js/cloud/sync.js','./js/cloud/ui.js','./js/cloud/diagnostics.js','./js/vendor/supabase.js','./js/cards.js','./js/records.js','./js/drag-order.js','./js/version.js','./js/updates.js','./js/db.js','./js/calendar.js','./js/seasons.js','./js/people.js','./js/flower.js','./js/flowers/botanical.js','./js/comments.js','./js/sound.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(async c=>{await c.addAll(ASSETS.map(url=>new Request(url,{cache:'reload'})));await self.skipWaiting();})));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
