@@ -447,3 +447,6 @@ Google Client SecretはSupabaseサーバー側だけで保持します。フロ�
 ## c025 初回タイトル画面
 
 既存のIndexedDB settings.initializedが未完了のときだけタイトル画面を表示します。「はじめる」は#registerへの移動のみで、人物登録の「完了」で従来通り初期設定を完了します。途中終了時は未完了の登録またはタイトルに戻り、登録済みカードは保持します。ホーム画面追加の案内はdisplay-mode: standaloneまたはnavigator.standalone時には非表示です。記録引き継ぎは人物登録画面の「すでに記録がある方」、または人物・設定から利用できます。
+
+## c028 設定タブと着せ替え
+人物・花・壁紙・その他の4タブです。既存Supabaseには supabase/c028-appearance.sql を追加適用してください。権限のON/OFF・実機テスト・制限は supabase/APPEARANCE-SETUP.md に記載しています。

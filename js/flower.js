@@ -4,8 +4,8 @@ export const getFlowerType=getFlowerForDate;
 export const progressForCount=count=>Math.min(1,Math.max(0,Number(count)||0)/5);
 export function sproutSVG(){return '<svg viewBox="0 0 36 36" class="sprout" aria-hidden="true"><path d="M18 30 Q19 23 17 17" fill="none" stroke="#a7b89a" stroke-width="1.5" stroke-linecap="round"/><path d="M17 21 C8 22 5 17 6 12 C13 11 18 15 17 21Z M18 20 C18 12 24 9 30 10 C30 17 25 22 18 20Z" fill="#d1dec5" stroke="#a7b89a" stroke-width="1" stroke-linejoin="round"/></svg>';}
 
-export function flowerSVG(date,count,{large=false,animate=false,calendar=false}={}){
-  const flower=getFlowerForDate(date),progress=progressForCount(count);
+export function flowerSVG(date,count,{large=false,animate=false,calendar=false,flower=getFlowerForDate(date)}={}){
+  const progress=progressForCount(count);
   const level=count>=15?3:count>=10?2:count>=6?1:0;
   const saturation=Math.min(95,flower.saturation+level*4),lightness=flower.lightness-level*4;
   const palette=`--bloom-main:hsl(${flower.hue} ${saturation}% ${lightness}%);--bloom-light:hsl(${flower.hue} ${saturation}% ${Math.min(93,lightness+12)}%);--bloom-dark:hsl(${flower.hue} ${Math.max(20,saturation-18)}% ${lightness-15}%)`;

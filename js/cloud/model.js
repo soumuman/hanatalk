@@ -1,4 +1,5 @@
-export const syncedSettings=new Set(['appStartedAt','soundEnabled','theme']);
+const ordinarySettings=new Set(['appStartedAt','soundEnabled','theme']);
+export const syncedSettings={has:key=>ordinarySettings.has(key)||/^flowerMonth:\d{4}-(0[1-9]|1[0-2])$/.test(key)};
 export const tableFor={people:'people',dailyLogs:'daily_logs',settings:'settings'};
 export function resolveConflict(local,remote){
  if(!local)return remote;if(!remote)return local;

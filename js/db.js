@@ -180,6 +180,6 @@ export async function importGuest(snapshot){
  return transact(['people','dailyLogs','settings'],'readwrite',tx=>{
   snapshot.people.forEach(p=>tx.objectStore('people').put(p));
   snapshot.dailyLogs.forEach(l=>{const targetId=logTargetId(l);tx.objectStore('dailyLogs').put({...l,id:`${l.date}:${targetId}`,targetId,personId:targetId});});
-  snapshot.settings.filter(s=>syncedSettings.has(s.key)).forEach(s=>tx.objectStore('settings').put(s));
+  snapshot.settings.filter(s=>syncedSettings.has(s.key)&&!s.key.startsWith('flowerMonth:')).forEach(s=>tx.objectStore('settings').put(s));
  });
 }
