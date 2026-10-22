@@ -450,3 +450,6 @@ Google Client SecretはSupabaseサーバー側だけで保持します。フロ�
 
 ## c028 設定タブと着せ替え
 人物・花・壁紙・その他の4タブです。既存Supabaseには supabase/c028-appearance.sql を追加適用してください。権限のON/OFF・実機テスト・制限は supabase/APPEARANCE-SETUP.md に記載しています。
+
+### c029
+花の選択欄で完成形を確認できます。今月・未来月は決定後も変更可能、過去月は保持します。川辺・山並み・お寺の境内の壁紙を追加しました。SQLの追加適用は不要です。
