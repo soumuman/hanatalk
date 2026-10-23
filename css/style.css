@@ -8,6 +8,9 @@
 .calendar-view .month-nav{margin-top:0;min-height:44px}
 .calendar-view .month-nav>button{min-height:44px;padding:5px 8px}
 .calendar-view .month-sub{margin:0;min-height:42px;gap:6px}
+.month-sub .season{flex:1;min-width:0}
+.month-sub .text-link{flex:none;white-space:nowrap}
+.grayson-season>div{min-width:0}
 .season{display:flex;flex-direction:column;gap:1px;font-size:14px;line-height:1.35}
 .season-note{font-size:13px;color:var(--muted)}
 .calendar-view .week{padding:4px 0;line-height:20px}
