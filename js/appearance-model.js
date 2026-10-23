@@ -1,7 +1,7 @@
-import {flowerCatalog} from './flowers/botanical.js';
+import {flowerCatalog,addedSets} from './flowers/catalog.js';
 // Stable baseline: adding/reordering catalog entries must never change historical defaults.
 export const basicFlowers=['ume','suisen','sakura','tulip','nemophila','hydrangea','morning-glory','sunflower','cosmos','osmanthus','chrysanthemum','poinsettia'];
-export const flowerSets=[{id:'basic',name:'基本',flowers:basicFlowers}];
+export const flowerSets=[{id:'basic',name:'基本',flowers:basicFlowers},...addedSets];
 export const wallpapers=[{id:'ivory',name:'生成り',color:'#f7f5ef'},{id:'leaf',name:'若葉',color:'#eef4ec'},{id:'sakura',name:'桜霞',color:'#faf0f2'},...['river','mountains','temple'].map((id,i)=>({id,name:['川辺','山並み','お寺の境内'][i],color:'#f7f5ef',image:`icons/wallpapers/${id}.svg`}))];
 export const monthKey=date=>date.slice(0,7);
 export const flowerSetting=month=>`flowerMonth:${month}`;

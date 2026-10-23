@@ -9,3 +9,5 @@ dist/
 js/cloud/config.js
 js/vendor/
 security-results/
+
+preview-c030.mjs

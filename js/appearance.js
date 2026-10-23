@@ -3,9 +3,10 @@ import * as db from './db.js';
 import {client} from './cloud/client.js';
 import {fromRemote} from './cloud/model.js';
 import {dateKey} from './calendar.js';
-import {flowerCatalog} from './flowers/botanical.js';
+import {flowerCatalog} from './flowers/catalog.js';
 import {wallpapers,flowerSets,selectedFlower,setMonths,flowerConfirmation,setConfirmation} from './appearance-model.js';
 let settings=[],access={premium:false,preservedThrough:''},owner=null,checkedAt=0,ready=false;
+let selectedSet='basic';
 let selectedYear=new Date().getFullYear();
 export const chosenFlower=date=>selectedFlower(date,settings,access);
 export async function refreshAppearance(force=false){
@@ -34,14 +35,15 @@ function applyWallpaper(){
  const usePhoto=settings.find(s=>s.key==='localWallpaperPhotoEnabled')?.value===true&&access.premium;
  document.documentElement.style.setProperty('--wallpaper-photo',usePhoto&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo||'')?`url("${photo}")`:'none');
 }
-const preview=flower=>`<span class="flower-preview" role="img" aria-label="${flower.name}の完成イメージ"><span aria-hidden="true">${flowerSVG('2000-01-01',5,{calendar:true,flower})}</span></span>`;
+const preview=flower=>`<span class="flower-preview" role="img" aria-label="${flower.name}の完成イメージ"><span aria-hidden="true">${flowerSVG('2000-01-01',5,{calendar:true,preview:true,flower})}</span></span>`;
+const setPreview=id=>flowerSets.find(s=>s.id===id).flowers.map(id=>{const flower=flowerCatalog.find(f=>f.id===id);return `<span class="set-sample">${preview(flower)}<small>${flower.name}</small></span>`;}).join('');
 const lock=()=>access.premium?'':`<p class="small">花の選択・写真の壁紙はサブスクで利用できます。${db.currentAccount()?'':'「その他」でログインし、クラウド同期を有効にしてください。'}</p><button data-unlock>ロック解除</button>`;
 export function appearancePanel(tab){
  if(tab==='flowers'){
   const today=dateKey(),disabled=access.premium?'':'disabled';
-  return `<h2>花</h2><p class="small">今月・未来月は、決定後も何度でも変更できます。先月以前の花はそのまま残ります。</p><label>設定する年<select data-flower-year>${Array.from({length:3},(_,i)=>new Date().getFullYear()+i).map(y=>`<option ${y===selectedYear?'selected':''}>${y}</option>`).join('')}</select></label><form data-flower-set><label>セット<select name="set" ${disabled}>${flowerSets.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></label><button ${disabled}>決定</button></form><div class="month-flowers">${Array.from({length:12},(_,i)=>{
+  return `<h2>花</h2><p class="small">今月・未来月は、決定後も何度でも変更できます。先月以前の花はそのまま残ります。</p><label>設定する年<select data-flower-year>${Array.from({length:3},(_,i)=>new Date().getFullYear()+i).map(y=>`<option ${y===selectedYear?'selected':''}>${y}</option>`).join('')}</select></label><form data-flower-set><label>セット<select name="set" ${disabled}>${flowerSets.map(s=>`<option value="${s.id}" ${s.id===selectedSet?'selected':''}>${s.name}</option>`).join('')}</select></label><button ${disabled}>決定</button></form><details class="set-preview"><summary>セットの見本</summary><div class="set-preview-grid">${setPreview(selectedSet)}</div></details><div class="month-flowers">${Array.from({length:12},(_,i)=>{
    const month=`${selectedYear}-${String(i+1).padStart(2,'0')}`,flower=chosenFlower(month+'-01'),past=month<today.slice(0,7);
-   return `<form data-flower-month="${month}"><label for="flower-${month}">${i+1}月</label>${preview(flower)}<select id="flower-${month}" name="flower" ${past||!access.premium?'disabled':''}>${flowerCatalog.map(f=>`<option value="${f.id}" ${f.id===flower.id?'selected':''}>${f.name}</option>`).join('')}</select><button ${past||!access.premium?'disabled':''}>${past?'確定済み':'決定'}</button></form>`;
+   return `<form data-flower-month="${month}"><label for="flower-${month}">${i+1}月</label>${preview(flower)}<select id="flower-${month}" name="flower" ${past||!access.premium?'disabled':''}>${flowerSets.map(set=>`<optgroup label="${set.name}">${set.flowers.map(id=>flowerCatalog.find(f=>f.id===id)).map(f=>`<option value="${f.id}" ${f.id===flower.id?'selected':''}>${f.name}</option>`).join('')}</optgroup>`).join('')}</select><button ${past||!access.premium?'disabled':''}>${past?'確定済み':'決定'}</button></form>`;
   }).join('')}</div>${lock()}`;
  }
  const current=settings.find(s=>s.key==='theme')?.value||'ivory';
@@ -82,6 +84,7 @@ export function bindAppearance(root,{confirm,notify,render,run}){
   run(async()=>{await db.put('settings',{key:'theme',value:button.dataset.wallpaper});await db.put('settings',{key:'localWallpaperPhotoEnabled',value:false});await refreshAppearance();await render();});
  });
  root.addEventListener('change',e=>{
+  if(e.target.matches('[data-flower-set] select')){selectedSet=e.target.value;const sample=root.querySelector('.set-preview');sample.open=true;sample.querySelector('.set-preview-grid').innerHTML=setPreview(selectedSet);}
   if(e.target.matches('[data-flower-month] select')){const flower=flowerCatalog.find(f=>f.id===e.target.value);if(flower)e.target.closest('form').querySelector('.flower-preview').outerHTML=preview(flower);}
   if(e.target.matches('[data-flower-year]')){selectedYear=Number(e.target.value);render();}
   if(e.target.matches('[data-wallpaper-photo]')){const file=e.target.files[0];if(!file)return;run(async()=>{
