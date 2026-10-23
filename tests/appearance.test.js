@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {selectedFlower,setMonths,flowerConfirmation,setConfirmation,wallpaperPhotoLabel,hasWallpaperPhoto} from '../js/appearance-model.js';
+import {selectedFlower,setMonths,flowerConfirmation,setConfirmation,wallpaperPhotoLabel,hasWallpaperPhoto,wallpaperPhotoActive} from '../js/appearance-model.js';
 test('monthly choices preserve historical flowers after revocation, but future reservations return to basic',()=>{
  const settings=[{key:'flowerMonth:2026-10',value:'sakura'},{key:'flowerMonth:2026-11',value:'sakura'}];
  const free={premium:false,preservedThrough:'2026-10'};
@@ -26,4 +26,9 @@ test('wallpaper photo field shows the file name itself in place of the no-file t
  assert.equal(hasWallpaperPhoto([photo]),true);
  assert.equal(hasWallpaperPhoto([{key:'localWallpaperPhoto',value:''}]),false);
  assert.equal(hasWallpaperPhoto([]),false);
+ // A stored photo is not the wallpaper until re-applied; another wallpaper choice turns it off without deleting it.
+ assert.equal(wallpaperPhotoActive([photo]),false);
+ assert.equal(wallpaperPhotoActive([photo,{key:'localWallpaperPhotoEnabled',value:true}]),true);
+ assert.equal(wallpaperPhotoActive([photo,{key:'localWallpaperPhotoEnabled',value:false}]),false);
+ assert.equal(wallpaperPhotoActive([{key:'localWallpaperPhotoEnabled',value:true}]),false);
 });

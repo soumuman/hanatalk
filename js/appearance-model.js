@@ -9,6 +9,7 @@ export function wallpaperPhotoLabel(settings){
  return String(settings.find(s=>s.key==='localWallpaperPhotoName')?.value||'').trim()||'写真を設定済み';
 }
 export const hasWallpaperPhoto=settings=>Boolean(settings.find(s=>s.key==='localWallpaperPhoto')?.value);
+export const wallpaperPhotoActive=settings=>hasWallpaperPhoto(settings)&&settings.find(s=>s.key==='localWallpaperPhotoEnabled')?.value===true;
 export const monthKey=date=>date.slice(0,7);
 export const flowerSetting=month=>`flowerMonth:${month}`;
 export const isFlowerSetting=key=>/^flowerMonth:\d{4}-(0[1-9]|1[0-2])$/.test(key);

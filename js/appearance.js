@@ -4,7 +4,7 @@ import {client} from './cloud/client.js';
 import {fromRemote} from './cloud/model.js';
 import {dateKey} from './calendar.js';
 import {flowerCatalog} from './flowers/catalog.js';
-import {wallpapers,flowerSets,selectedFlower,setMonths,flowerConfirmation,setConfirmation,wallpaperPhotoLabel,hasWallpaperPhoto} from './appearance-model.js';
+import {wallpapers,flowerSets,selectedFlower,setMonths,flowerConfirmation,setConfirmation,wallpaperPhotoLabel,hasWallpaperPhoto,wallpaperPhotoActive} from './appearance-model.js';
 import {escapeHTML} from './people.js';
 let settings=[],access={premium:false,preservedThrough:''},owner=null,checkedAt=0,ready=false;
 let selectedSet='basic';
@@ -48,7 +48,8 @@ export function appearancePanel(tab){
   }).join('')}</div>${lock()}`;
  }
  const current=settings.find(s=>s.key==='theme')?.value||'ivory';
- return `<h2>壁紙</h2><p class="small">選ぶとすぐに反映されます。</p><div class="wallpaper-options">${wallpapers.map(w=>`<button data-wallpaper="${w.id}" aria-pressed="${current===w.id}" style="background:${w.color}"><span class="wallpaper-swatch" style="background:${w.color};${w.image?`background-image:url('${w.image}')`:``}"></span>${w.name}</button>`).join('')}</div><span class="wallpaper-photo-title">自分の写真</span><div class="wallpaper-photo-row"><label class="wallpaper-photo-picker">ファイルを選択<input data-wallpaper-photo type="file" accept="image/jpeg,image/png,image/webp" ${access.premium?'':'disabled'}></label><span class="wallpaper-photo-name" data-wallpaper-photo-status>${escapeHTML(wallpaperPhotoLabel(settings))}</span>${hasWallpaperPhoto(settings)?`<button type="button" data-wallpaper-photo-delete>削除</button>`:''}</div><p class="small">写真はこの端末だけに保存します。花が見やすいよう、薄く表示します。</p>${lock()}`;
+ const hasPhoto=hasWallpaperPhoto(settings),photoActive=wallpaperPhotoActive(settings);
+ return `<h2>壁紙</h2><p class="small">選ぶとすぐに反映されます。</p><div class="wallpaper-options">${wallpapers.map(w=>`<button data-wallpaper="${w.id}" aria-pressed="${current===w.id&&!photoActive}" style="background:${w.color}"><span class="wallpaper-swatch" style="background:${w.color};${w.image?`background-image:url('${w.image}')`:``}"></span>${w.name}</button>`).join('')}</div><span class="wallpaper-photo-title">自分の写真</span><div class="wallpaper-photo-row${photoActive?' is-active':''}"><label class="wallpaper-photo-picker">ファイルを選択<input data-wallpaper-photo type="file" accept="image/jpeg,image/png,image/webp" ${access.premium?'':'disabled'}></label>${hasPhoto?`<button type="button" class="wallpaper-photo-name" data-wallpaper-photo-apply data-wallpaper-photo-status aria-pressed="${photoActive}" ${access.premium?'':'disabled'}>${escapeHTML(wallpaperPhotoLabel(settings))}</button>`:`<span class="wallpaper-photo-name" data-wallpaper-photo-status>${escapeHTML(wallpaperPhotoLabel(settings))}</span>`}${hasPhoto?`<button type="button" data-wallpaper-photo-delete>削除</button>`:''}</div>${hasPhoto&&!photoActive?`<p class="small">ファイル名をタップすると、この写真を壁紙にできます。</p>`:''}<p class="small">写真はこの端末だけに保存します。花が見やすいよう、薄く表示します。</p>${lock()}`;
 }
 async function saveFlowers(months){
  await refreshAppearance(true);
@@ -81,6 +82,8 @@ export function bindAppearance(root,{confirm,notify,render,run}){
  root.addEventListener('click',e=>{
   const unlock=e.target.closest('[data-unlock]');
   if(unlock){notify('サブスクの申し込みは準備中です。現在は管理者が利用権限を設定します。');return;}
+  const applyPhoto=e.target.closest('[data-wallpaper-photo-apply]');
+  if(applyPhoto){run(async()=>{await refreshAppearance(true);if(!access.premium)throw Error('オンラインで利用権限を確認してください。');await db.put('settings',{key:'localWallpaperPhotoEnabled',value:true});await refreshAppearance();await render();notify('写真を壁紙にしました');});return;}
   const deletePhoto=e.target.closest('[data-wallpaper-photo-delete]');
   if(deletePhoto){run(async()=>{await db.put('settings',{key:'localWallpaperPhoto',value:''});await db.put('settings',{key:'localWallpaperPhotoName',value:''});await db.put('settings',{key:'localWallpaperPhotoEnabled',value:false});await refreshAppearance();await render();notify('写真を削除しました');});return;}
   const button=e.target.closest('[data-wallpaper]');if(!button)return;
