@@ -3,6 +3,17 @@ import {flowerCatalog,addedSets} from './flowers/catalog.js';
 export const basicFlowers=['ume','suisen','sakura','tulip','nemophila','hydrangea','morning-glory','sunflower','cosmos','osmanthus','chrysanthemum','poinsettia'];
 export const flowerSets=[{id:'basic',name:'基本',flowers:basicFlowers},...addedSets];
 export const wallpapers=[{id:'ivory',name:'生成り',color:'#f7f5ef'},{id:'leaf',name:'若葉',color:'#eef4ec'},{id:'sakura',name:'桜霞',color:'#faf0f2'},...['river','mountains','temple'].map((id,i)=>({id,name:['川辺','山並み','お寺の境内'][i],color:'#f7f5ef',image:`icons/wallpapers/${id}.svg`}))];
+export function wallpaperPhotoLabel(settings){
+ const photo=settings.find(s=>s.key==='localWallpaperPhoto')?.value;
+ if(!photo)return 'ファイル未選択';
+ const name=String(settings.find(s=>s.key==='localWallpaperPhotoName')?.value||'').trim();
+ const label=name||'写真を設定済み';
+ return settings.find(s=>s.key==='localWallpaperPhotoEnabled')?.value===true?`選択中：${label}`:`保存済み：${label}`;
+}
+export function wallpaperPhotoSource(settings){
+ const photo=settings.find(s=>s.key==='localWallpaperPhoto')?.value;
+ return typeof photo==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo)?photo:'';
+}
 export const monthKey=date=>date.slice(0,7);
 export const flowerSetting=month=>`flowerMonth:${month}`;
 export const isFlowerSetting=key=>/^flowerMonth:\d{4}-(0[1-9]|1[0-2])$/.test(key);

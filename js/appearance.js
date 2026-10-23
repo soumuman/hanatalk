@@ -4,7 +4,8 @@ import {client} from './cloud/client.js';
 import {fromRemote} from './cloud/model.js';
 import {dateKey} from './calendar.js';
 import {flowerCatalog} from './flowers/catalog.js';
-import {wallpapers,flowerSets,selectedFlower,setMonths,flowerConfirmation,setConfirmation} from './appearance-model.js';
+import {wallpapers,flowerSets,selectedFlower,setMonths,flowerConfirmation,setConfirmation,wallpaperPhotoLabel,wallpaperPhotoSource} from './appearance-model.js';
+import {escapeHTML} from './people.js';
 let settings=[],access={premium:false,preservedThrough:''},owner=null,checkedAt=0,ready=false;
 let selectedSet='basic';
 let selectedYear=new Date().getFullYear();
@@ -47,7 +48,7 @@ export function appearancePanel(tab){
   }).join('')}</div>${lock()}`;
  }
  const current=settings.find(s=>s.key==='theme')?.value||'ivory';
- return `<h2>壁紙</h2><p class="small">選ぶとすぐに反映されます。</p><div class="wallpaper-options">${wallpapers.map(w=>`<button data-wallpaper="${w.id}" aria-pressed="${current===w.id}" style="background:${w.color}"><span class="wallpaper-swatch" style="background:${w.color};${w.image?`background-image:url('${w.image}')`:``}"></span>${w.name}</button>`).join('')}</div><label>自分の写真<input data-wallpaper-photo type="file" accept="image/jpeg,image/png,image/webp" ${access.premium?'':'disabled'}></label><p class="small">写真はこの端末だけに保存します。花が見やすいよう、薄く表示します。</p>${lock()}`;
+ return `<h2>壁紙</h2><p class="small">選ぶとすぐに反映されます。</p><div class="wallpaper-options">${wallpapers.map(w=>`<button data-wallpaper="${w.id}" aria-pressed="${current===w.id}" style="background:${w.color}"><span class="wallpaper-swatch" style="background:${w.color};${w.image?`background-image:url('${w.image}')`:``}"></span>${w.name}</button>`).join('')}</div><label>自分の写真<input data-wallpaper-photo type="file" accept="image/jpeg,image/png,image/webp" ${access.premium?'':'disabled'}></label><p class="small" data-wallpaper-photo-status>${escapeHTML(wallpaperPhotoLabel(settings))}</p>${wallpaperPhotoSource(settings)?`<img class="wallpaper-photo-preview" data-wallpaper-photo-preview src="${wallpaperPhotoSource(settings)}" alt="今の写真壁紙のプレビュー">`:''}<p class="small">写真はこの端末だけに保存します。花が見やすいよう、薄く表示します。</p>${lock()}`;
 }
 async function saveFlowers(months){
  await refreshAppearance(true);
@@ -90,7 +91,7 @@ export function bindAppearance(root,{confirm,notify,render,run}){
   if(e.target.matches('[data-wallpaper-photo]')){const file=e.target.files[0];if(!file)return;run(async()=>{
    await refreshAppearance(true);if(!access.premium)throw Error('オンラインで利用権限を確認してください。');
    const photo=await readPhoto(file);
-   await db.put('settings',{key:'localWallpaperPhoto',value:photo});await db.put('settings',{key:'localWallpaperPhotoEnabled',value:true});await refreshAppearance();await render();
+   await db.put('settings',{key:'localWallpaperPhoto',value:photo});await db.put('settings',{key:'localWallpaperPhotoName',value:String(file.name||'').slice(0,200)});await db.put('settings',{key:'localWallpaperPhotoEnabled',value:true});await refreshAppearance();await render();
   });}
  });
 }
