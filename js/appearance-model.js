@@ -6,14 +6,9 @@ export const wallpapers=[{id:'ivory',name:'生成り',color:'#f7f5ef'},{id:'leaf
 export function wallpaperPhotoLabel(settings){
  const photo=settings.find(s=>s.key==='localWallpaperPhoto')?.value;
  if(!photo)return 'ファイル未選択';
- const name=String(settings.find(s=>s.key==='localWallpaperPhotoName')?.value||'').trim();
- const label=name||'写真を設定済み';
- return settings.find(s=>s.key==='localWallpaperPhotoEnabled')?.value===true?`選択中：${label}`:`保存済み：${label}`;
+ return String(settings.find(s=>s.key==='localWallpaperPhotoName')?.value||'').trim()||'写真を設定済み';
 }
-export function wallpaperPhotoSource(settings){
- const photo=settings.find(s=>s.key==='localWallpaperPhoto')?.value;
- return typeof photo==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo)?photo:'';
-}
+export const hasWallpaperPhoto=settings=>Boolean(settings.find(s=>s.key==='localWallpaperPhoto')?.value);
 export const monthKey=date=>date.slice(0,7);
 export const flowerSetting=month=>`flowerMonth:${month}`;
 export const isFlowerSetting=key=>/^flowerMonth:\d{4}-(0[1-9]|1[0-2])$/.test(key);
